@@ -2,4 +2,8 @@ davis-2017/DAVIS/*
 .idea/*
 davis-2017/.idea/*
 coco/*
+OSVOS-TensorFlow/.idea/*
+OSVOS-TensorFlow/DAVIS/*
+OSVOS-TensorFlow/models/*
+OSVOS-TensorFlow/*.pyc
 *.pyc

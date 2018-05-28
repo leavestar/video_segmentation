@@ -94,6 +94,7 @@ class BalloonDataset(utils.Dataset):
         assert subset in ["train", "val"]
         dataset_dir = os.path.join(dataset_dir, subset)
 
+
         # Load annotations
         # VGG Image Annotator saves each image in the form:
         # { 'filename': '28503151_5b5b7ec140_b.jpg',
@@ -116,6 +117,7 @@ class BalloonDataset(utils.Dataset):
         # annotations. Skip unannotated images.
         annotations = [a for a in annotations if a['regions']]
 
+        print("Load data from {}, annotated image {}".format(dataset_dir, len(annotations)))
         # Add images
         for a in annotations:
             # Get the x, y coordinaets of points of the polygons that make up
@@ -129,7 +131,7 @@ class BalloonDataset(utils.Dataset):
             image_path = os.path.join(dataset_dir, a['filename'])
             image = skimage.io.imread(image_path)
             height, width = image.shape[:2]
-
+            print("Image size : {}x{}, number of Polygon {}".format(height, width, len(polygons)))
             self.add_image(
                 "balloon",
                 image_id=a['filename'],  # use file name as a unique image id
