@@ -39,11 +39,18 @@ def db_eval_sequence(segmentations,annotations,measure='J',n_jobs=cfg.N_JOBS):
   Returns:
     results (list): ['raw'] per-frame, per-object sequence results.
   """
+  segmentations_copy = [None]*len(segmentations)
+  for i in range(len(segmentations)):
+    new_sg = segmentations[i].copy()
+    # import pdb
+    # pdb.set_trace()
+    new_sg[segmentations[i]==255] = 1
+    segmentations_copy[i] = new_sg
 
   results = {'raw':[]}
   for obj_id in annotations.iter_objects_id():
     results['raw'].append(Parallel(n_jobs=n_jobs)(delayed(_db_measures[measure])(
-      an==obj_id,sg==obj_id) for an,sg in zip(annotations[1:-1],segmentations[1:-1])))
+      an==obj_id,sg==obj_id) for an,sg in zip(annotations[1:-1],segmentations_copy[1:-1])))
 
   for stat,stat_fuc in measures._statistics.iteritems():
     results[stat] = [float(stat_fuc(r)) for r in results['raw']]
