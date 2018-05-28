@@ -12,7 +12,8 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
 
     # Train a new model starting from pre-trained COCO weights
-    python3 balloon.py train --dataset=/path/to/balloon/dataset --weights=coco
+    python3 balloon.py train --dataset=/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/Mask_RCNN/datasets/balloon/ --weights=coco
+
 
     # Resume training a model that you had trained earlier
     python3 balloon.py train --dataset=/path/to/balloon/dataset --weights=last
@@ -188,6 +189,9 @@ def train(model):
     # COCO trained weights, we don't need to train too long. Also,
     # no need to train all layers, just the heads should do it.
     print("Training network heads")
+
+    # import pdb; pdb.set_trace()
+
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
                 epochs=30,

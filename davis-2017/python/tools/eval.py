@@ -22,7 +22,7 @@ import davis
 import numpy as np
 
 from davis import Timer,log,cfg,db_eval
-from davis import DAVISLoader,Segmentation
+from davis import DAVISLoader, Segmentation
 
 from prettytable import PrettyTable
 
@@ -71,16 +71,17 @@ if __name__ == '__main__':
 
   # Load DAVIS
   db = DAVISLoader(args.year,
-      args.phase,args.single_object)
+      args.phase, args.single_object)
 
   log.info('Loading video segmentations from: {}'.format(args.input))
 
   # Load segmentations
   segmentations = [Segmentation(
-    osp.join(args.input,s),args.single_object) for s in db.iternames()]
+    osp.join(args.input, s), args.single_object) for s in db.iternames()]
 
+  import pdb; pdb.set_trace()
   # Evaluate results
-  evaluation = db_eval(db,segmentations,args.metrics)
+  evaluation = db_eval(db, segmentations, args.metrics)
 
   # Print results
   table = PrettyTable(['Method']+[p[0]+'_'+p[1] for p in

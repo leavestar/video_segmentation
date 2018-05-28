@@ -67,10 +67,12 @@ if __name__ == '__main__':
   db = davis.dataset.DAVISLoader(args.year,
       args.phase,args.single_object)
 
+  # import pdb; pdb.set_trace()
   if args.input is None:
     # Visualize ground-truth data
     for images,annotations in db.iteritems():
       for im,an in zip(images,annotations):
+        import pdb; pdb.set_trace()
         ch = imshow(im,an,annotations.color_palette)
         if  ch == 'q':
           sys.exit(0)

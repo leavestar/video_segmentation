@@ -61,6 +61,8 @@ class BaseLoader(ImageCollection):
   """
 
   def __init__(self,path,regex,load_func=None):
+    # import pdb; pdb.set_trace()
+
     super(BaseLoader, self).__init__(
         osp.join(path + '/' + regex),load_func=load_func)
 
@@ -73,9 +75,11 @@ class BaseLoader(ImageCollection):
 
     # Check sequence length
     if cfg.PHASE != phase.TESTDEV and len(self) != cfg.SEQUENCES[self.name].num_frames:
+      import pdb;
+      pdb.set_trace()
       raise Exception("Incorrect frames number for sequence" +
           " \'{}\': found {}, expected {}.".format(
-            self.name,len(self),cfg.SEQUENCES[self.name].num_frames))
+            self.name, len(self), cfg.SEQUENCES[self.name].num_frames))
 
   def __str__(self):
     return "< class: '{}' name: '{}', frames: {} >".format(
@@ -109,8 +113,8 @@ class Segmentation(BaseLoader):
   """
 
   def __init__(self,path,single_object,regex="*.png"):
-    super(Segmentation, self).__init__(path,regex,
-       functools.partial(_load_annotation,single_object=single_object))
+    super(Segmentation, self).__init__(path, regex,
+       functools.partial(_load_annotation, single_object=single_object))
 
     if len(self):
       # Extract color palette from image file

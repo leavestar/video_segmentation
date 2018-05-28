@@ -67,7 +67,8 @@ __C.PATH.PALETTE = osp.abspath(osp.join(__C.PATH.ROOT, 'data/palette.txt'))
 __C.FILES = edict()
 
 # Path to property file, holding information on evaluation sequences.
-__C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info.yaml"))
+# __C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info.yaml"))
+__C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info_test.yaml"))
 
 # Measures and Statistics
 __C.EVAL = edict()
@@ -106,7 +107,7 @@ def db_read_sequences(year=None,db_phase=None):
           lambda s: ((s.set == phase.VAL.value) or (s.set == phase.TRAIN.value)), sequences)
     else:
       sequences = filter(
-          lambda s:s.set == db_phase.value,sequences)
+          lambda s:s.set == db_phase.value, sequences)
   return sequences
 
 # Load all sequences

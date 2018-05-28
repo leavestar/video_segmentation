@@ -44,7 +44,7 @@ class DAVISLoader(object):
 
   Members:
     sequences (list): list of 'Sequence' objects containing RGB frames.
-    annotations(list): list of 'Annotation' objects containing ground-truth segmentations.
+    (list): list of 'Annotation' objects containing ground-truth segmentations.
   """
   def __init__(self,year,phase,single_object=False):
     super(DAVISLoader, self).__init__()
