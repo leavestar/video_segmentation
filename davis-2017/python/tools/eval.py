@@ -79,7 +79,7 @@ if __name__ == '__main__':
   segmentations = [Segmentation(
     osp.join(args.input, s), args.single_object) for s in db.iternames()]
 
-  import pdb; pdb.set_trace()
+  # import pdb; pdb.set_trace()
   # Evaluate results
   evaluation = db_eval(db, segmentations, args.metrics)
 

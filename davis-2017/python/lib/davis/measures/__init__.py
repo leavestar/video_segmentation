@@ -7,14 +7,14 @@
 # Adapted from DAVIS 2016 (Federico Perazzi)
 # ----------------------------------------------------------------------------
 
-from jaccard     import db_eval_iou
-from f_boundary  import db_eval_boundary
+from .jaccard     import db_eval_iou
+from .f_boundary  import db_eval_boundary
 from ..misc import log
 
 try:
-  from t_stability import db_eval_t_stab
+  from .t_stability import db_eval_t_stab
 except:
   log.warning("Temporal stability not available")
 
-from statistics import _statistics
+from .statistics import _statistics
 

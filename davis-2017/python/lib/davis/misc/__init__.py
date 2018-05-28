@@ -7,7 +7,7 @@
 # Adapted from DAVIS 2016 (Federico Perazzi)
 # ----------------------------------------------------------------------------
 
-from timer  import Timer
-from logger import logging as log
-from config import phase,cfg
-from visual import overlay
+from davis.misc.timer  import Timer
+from davis.misc.logger import logging as log
+from davis.misc.config import phase,cfg
+from davis.misc.visual import overlay
