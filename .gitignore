@@ -1,2 +1,5 @@
 davis-2017/DAVIS/*
 .idea/*
+davis-2017/.idea/*
+coco/*
+*.pyc
