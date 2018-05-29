@@ -23,16 +23,16 @@ from dataset import Dataset
 os.chdir(root_folder)
 
 # User defined parameters
-seq_name = "car-shadow"
 gpu_id = 0
 train_model = True
-result_path = os.path.join('..', 'davis-2017', 'data','DAVIS', 'Results', 'Segmentations', '480p', 'OSVOS', seq_name)
 
 # Train parameters
 parent_path = os.path.join('models', 'OSVOS_parent', 'OSVOS_parent.ckpt-50000')
 max_training_iters = 500
 
 def demo(seq_name):
+    result_path = os.path.join('..', 'davis-2017', 'data', 'DAVIS', 'Results', 'Segmentations', '480p', 'OSVOS',
+                               seq_name)
     logs_path = os.path.join('models', seq_name)
 
     # Define Dataset
