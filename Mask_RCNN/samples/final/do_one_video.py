@@ -75,41 +75,53 @@ SAVE_DIR_ = os.path.join(ROOT_DIR, "../davis-2017/data/DAVIS/MaskRCNN/480p/")
 print (IMAGE_DIR_)
 print (SAVE_DIR_)
 #
-# for folder in FOLDER_NAMES:
-#     # try:
-#     IMAGE_DIR = IMAGE_DIR_ + folder + "/"
-#     SAVE_DIR = SAVE_DIR_ + folder + "/"
-#     if not os.path.exists(SAVE_DIR):
-#         os.makedirs(SAVE_DIR)
-#
-#     images = []
-#     files = []
-#     count = -1
-#     for file in os.listdir(IMAGE_DIR):
-#         count += 1
-#         # if count >= 2:
-#         #     continue
-#         if file.endswith(".jpg"):
-#             print(folder + ": " + file + " out of " + str(len(os.listdir(IMAGE_DIR))))
-#             image = skimage.io.imread(os.path.join(IMAGE_DIR, file))
-#             images.append(image)
-#             files.append(file)
-#             if len(images) == config.IMAGES_PER_GPU:
-#                 results = model.detect(images, verbose=0)
-#                 # save
-#                 for file_, result_ in zip(files, results):
-#                     data = np.squeeze(result_["masks"])
-#                     data = data.astype('uint8')
-#                     if np.atleast_3d(data).shape[2] != 1:
-#                         # when we detect more then one items
-#                         data_ = np.squeeze(data[:, :, 0])
-#                         for i in range(1, data.shape[2]):
-#                             data_[np.squeeze(data[:, :, i]) != 0] = (i + 1)
-#                         data = data_
-#                     io.imwrite_indexed(os.path.join(SAVE_DIR, file_[:-3] + "png"), data)
-#
-#                 # before done, reinit images and files
-#                 images = []
-#                 files = []
-#     # except:
-#     #     print("something wrong with " + folder)
+for folder in FOLDER_NAMES:
+    # try:
+    IMAGE_DIR = IMAGE_DIR_ + folder + "/"
+    FILES = [file for file in os.listdir(IMAGE_DIR) if file.endswith(".jpg")]
+    SAVE_DIR = SAVE_DIR_ + folder + "/"
+
+    start_from = 0
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
+    else:
+        saved_ = [file for file in os.listdir(SAVE_DIR) if file.endswith(".png")]
+        start_from = len(saved_)
+
+    images = []
+    files = []
+
+    for count, file in enumerate(FILES):
+        if count < start_from:
+            continue
+        print(folder + ": " + file + " out of " + str(len(os.listdir(IMAGE_DIR))))
+        image = skimage.io.imread(os.path.join(IMAGE_DIR, file))
+        images.append(image)
+        files.append(file)
+
+        # need special treatment for the last one
+        if count+1 == len(FILES) and len(images) != config.IMAGES_PER_GPU:
+            # force operate
+            while len(images) < config.IMAGES_PER_GPU:
+                images.append(image)
+                files.append(file)
+
+        if len(images) == config.IMAGES_PER_GPU:
+            results = model.detect(images, verbose=0)
+            # save
+            for file_, result_ in zip(files, results):
+                data = np.squeeze(result_["masks"])
+                data = data.astype('uint8')
+                if np.atleast_3d(data).shape[2] != 1:
+                    # when we detect more then one items
+                    data_ = np.squeeze(data[:, :, 0])
+                    for i in range(1, data.shape[2]):
+                        data_[np.squeeze(data[:, :, i]) != 0] = (i + 1)
+                    data = data_
+                io.imwrite_indexed(os.path.join(SAVE_DIR, file_[:-3] + "png"), data)
+
+            # before done, reinit images and files
+            images = []
+            files = []
+    # except:
+    #     print("something wrong with " + folder)
