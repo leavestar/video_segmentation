@@ -7,6 +7,9 @@ import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
 
+# use davis format to save
+from davis import *
+
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
 
@@ -33,7 +36,7 @@ class InferenceConfig(coco.CocoConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
+    IMAGES_PER_GPU = 2
 
 config = InferenceConfig()
 config.display()
@@ -64,19 +67,48 @@ class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
                'teddy bear', 'hair drier', 'toothbrush']
 
 
-
+FOLDER_NAMES = [_ for _ in cfg.SEQUENCES.keys()]
 #TODO hardcoded Directory of images to run detection on
-IMAGE_DIR = "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/JPEGImages/480p/elephant/"
+# let's do this iteratively
+IMAGE_DIR_ = "/Users/jingle.jiang/personal/class/stanford/\
+cs231n/final/video_segmentation/davis-2017/data/DAVIS/JPEGImages/480p/"
+SAVE_DIR_ = "/Users/jingle.jiang/personal/class/\
+stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/MaskRCNN/480p/"
+for folder in FOLDER_NAMES:
+    # try:
+    IMAGE_DIR = IMAGE_DIR_ + folder + "/"
+    SAVE_DIR = SAVE_DIR_ + folder + "/"
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
 
-# Load a random image from the images folder
-# file_names = next(os.walk(IMAGE_DIR))[2]
-# image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
-file_names = "00000.jpg"
+    images = []
+    files = []
+    count = -1
+    for file in os.listdir(IMAGE_DIR):
+        count += 1
+        # if count >= 2:
+        #     continue
+        if file.endswith(".jpg"):
+            print(folder + ": " + file + " out of " + str(len(os.listdir(IMAGE_DIR))))
+            image = skimage.io.imread(os.path.join(IMAGE_DIR, file))
+            images.append(image)
+            files.append(file)
+            if len(images) == config.IMAGES_PER_GPU:
+                results = model.detect(images, verbose=0)
+                # save
+                for file_, result_ in zip(files, results):
+                    data = np.squeeze(result_["masks"])
+                    data = data.astype('uint8')
+                    if np.atleast_3d(data).shape[2] != 1:
+                        # when we detect more then one items
+                        data_ = np.squeeze(data[:, :, 0])
+                        for i in range(1, data.shape[2]):
+                            data_[np.squeeze(data[:, :, i]) != 0] = (i + 1)
+                        data = data_
+                    io.imwrite_indexed(os.path.join(SAVE_DIR, file_[:-3] + "png"), data)
 
-image = skimage.io.imread(os.path.join(IMAGE_DIR, file_names))
-
-results = model.detect([image], verbose=1)
-
-
-SAVE_DIR = "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/MaskRCNN/480p/elephant/"
-image = skimage.io.imsave(os.path.join(SAVE_DIR, file_names), results[0]["masks"])
+                # before done, reinit images and files
+                images = []
+                files = []
+    # except:
+    #     print("something wrong with " + folder)
