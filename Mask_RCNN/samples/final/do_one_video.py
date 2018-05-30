@@ -36,7 +36,7 @@ class InferenceConfig(coco.CocoConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
 config = InferenceConfig()
 config.display()
@@ -75,10 +75,12 @@ SAVE_DIR_ = os.path.join(ROOT_DIR, "../davis-2017/data/DAVIS/MaskRCNN/480p/")
 print (IMAGE_DIR_)
 print (SAVE_DIR_)
 #
+
+FOLDER_NAMES = ["camel"]
 for folder in FOLDER_NAMES:
     # try:
     IMAGE_DIR = IMAGE_DIR_ + folder + "/"
-    FILES = [file for file in os.listdir(IMAGE_DIR) if file.endswith(".jpg")]
+    FILES = sorted([file for file in os.listdir(IMAGE_DIR) if file.endswith(".jpg")])
     SAVE_DIR = SAVE_DIR_ + folder + "/"
 
     start_from = 0
@@ -114,7 +116,10 @@ for folder in FOLDER_NAMES:
                 data = data.astype('uint8')
                 if np.atleast_3d(data).shape[2] != 1:
                     # when we detect more then one items
-                    data_ = np.squeeze(data[:, :, 0])
+                    if data.shape[2] == 0:
+                        data_ = np.zeros((data_.shape[:2])).astype('uint8')
+                    else:
+                        data_ = np.squeeze(data[:, :, 0])
                     for i in range(1, data.shape[2]):
                         data_[np.squeeze(data[:, :, i]) != 0] = (i + 1)
                     data = data_
