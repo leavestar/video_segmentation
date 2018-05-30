@@ -31,6 +31,13 @@ annatation_0 = os.path.join('../../', 'data', 'DAVIS', 'Annotations', '480p', se
 an,_ = io.imread_indexed(annatation_0)
 # an,_ = io.imread_indexed('/tmp/anno_indexed.png')
 
+# test on changing and write back
+base_image = np.zeros_like(an).astype('uint8')
+base_image[an == 3] = 3
+io.imwrite_indexed('/tmp/anno_indexed.png', base_image)
+
+test_result,_ = io.imread_indexed('/tmp/anno_indexed.png')
+
 import pdb; pdb.set_trace()
 cv2.imshow("Segmentation",cfg.palette[an][...,[2,1,0]])
 cv2.waitKey()

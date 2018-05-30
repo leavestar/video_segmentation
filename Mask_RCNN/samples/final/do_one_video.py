@@ -76,7 +76,6 @@ print (IMAGE_DIR_)
 print (SAVE_DIR_)
 #
 
-FOLDER_NAMES = ["camel"]
 for folder in FOLDER_NAMES:
     # try:
     IMAGE_DIR = IMAGE_DIR_ + folder + "/"
@@ -117,7 +116,7 @@ for folder in FOLDER_NAMES:
                 if np.atleast_3d(data).shape[2] != 1:
                     # when we detect more then one items
                     if data.shape[2] == 0:
-                        data_ = np.zeros((data_.shape[:2])).astype('uint8')
+                        data_ = np.zeros((data.shape[:2])).astype('uint8')
                     else:
                         data_ = np.squeeze(data[:, :, 0])
                     for i in range(1, data.shape[2]):

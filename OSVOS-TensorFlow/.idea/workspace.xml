@@ -11,18 +11,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="osvos_demo_seq.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/osvos_demo_seq.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="212">
-              <caret line="46" column="36" selection-start-line="46" selection-start-column="30" selection-end-line="46" selection-end-column="36" />
-              <folding>
-                <element signature="e#318#327#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="osvos_parent_demo.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/osvos_parent_demo.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -32,11 +20,23 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="osvos_demo_seq.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/osvos_demo_seq.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="480">
+              <caret line="79" column="30" selection-start-line="79" selection-start-column="30" selection-end-line="79" selection-end-column="30" />
+              <folding>
+                <element signature="e#318#327#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="osvos.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/osvos.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="271">
-              <caret line="547" column="41" selection-start-line="547" selection-start-column="24" selection-end-line="547" selection-end-column="41" />
+            <state relative-caret-position="241">
+              <caret line="594" column="4" selection-start-line="594" selection-start-column="4" selection-end-line="594" selection-end-column="4" />
               <folding>
                 <element signature="e#318#341#0" expanded="true" />
               </folding>
@@ -69,8 +69,9 @@
       <find>summary_writer</find>
       <find>logs_path</find>
       <find>model_name</find>
-      <find>dataset</find>
       <find>pdb</find>
+      <find>dataset</find>
+      <find>result_path</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -225,23 +226,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/osvos_parent_demo.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="339">
-          <caret line="46" column="19" selection-start-line="46" selection-start-column="19" selection-end-line="46" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/osvos.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="271">
-          <caret line="547" column="41" selection-start-line="547" selection-start-column="24" selection-end-line="547" selection-end-column="41" />
-          <folding>
-            <element signature="e#318#341#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/dataset.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="549">
@@ -249,10 +233,27 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/osvos.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="241">
+          <caret line="594" column="4" selection-start-line="594" selection-start-column="4" selection-end-line="594" selection-end-column="4" />
+          <folding>
+            <element signature="e#318#341#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/osvos_parent_demo.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="339">
+          <caret line="46" column="19" selection-start-line="46" selection-start-column="19" selection-end-line="46" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/osvos_demo_seq.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="212">
-          <caret line="46" column="36" selection-start-line="46" selection-start-column="30" selection-end-line="46" selection-end-column="36" />
+        <state relative-caret-position="480">
+          <caret line="79" column="30" selection-start-line="79" selection-start-column="30" selection-end-line="79" selection-end-column="30" />
           <folding>
             <element signature="e#318#327#0" expanded="true" />
           </folding>

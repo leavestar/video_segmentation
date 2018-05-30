@@ -35,6 +35,8 @@ train_model = True
 parent_path = os.path.join('models', 'OSVOS_parent', 'OSVOS_parent.ckpt-50000')
 max_training_iters = 500
 
+
+CUSTOM_ANNOTATION_DIR = os.path.join('..', 'davis-2017', 'data','DAVIS', 'cusom_Annotations')
 def demo(seq_name):
     # first read in ground truth segmentation and determine how many object are there
     annatation_0 = os.path.join('..', 'davis-2017', 'data','DAVIS', 'Annotations', '480p', seq_name, '00000.png')
@@ -42,40 +44,49 @@ def demo(seq_name):
     an, _ = io.imread_indexed(annatation_0)
     N_OBJECT = len(np.unique(an)) - 1
 
+    for n_object_ in range(1, N_OBJECT+1):
+        n_object = str(n_object_)
+        result_path = os.path.join('..', 'davis-2017', 'data', 'DAVIS', 'Results', 'Segmentations', '480p', 'OSVOS2', seq_name, n_object)
+        logs_path = os.path.join('models2', seq_name, n_object)
 
-    result_path = os.path.join('..', 'davis-2017', 'data', 'DAVIS', 'Results', 'Segmentations', '480p', 'OSVOS2', seq_name)
-    logs_path = os.path.join('models', seq_name)
+        # Define Dataset
+        test_frames = sorted(os.listdir(os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name)))
+        test_imgs = [os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name, frame) for frame in test_frames]
+        if train_model:
+            # we need to first create a new annotation that has only one object
+            base_image = np.zeros_like(an).astype('uint8')
+            base_image[an == n_object_] = n_object_
+            custom_anno = os.path.join(CUSTOM_ANNOTATION_DIR, seq_name, n_object)
+            if not os.path.exists(custom_anno):
+                os.makedirs(custom_anno)
+            io.imwrite_indexed(os.path.join(custom_anno, "00000.png"), base_image)
 
-    # Define Dataset
-    test_frames = sorted(os.listdir(os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name)))
-    test_imgs = [os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name, frame) for frame in test_frames]
-    if train_model:
-        train_imgs = [image_0+' '+annatation_0]
-        dataset = Dataset(train_imgs, test_imgs, './', data_aug=True)
-    else:
-        dataset = Dataset(None, test_imgs, './')
+            train_imgs = [image_0 + ' ' + os.path.join(custom_anno, "00000.png")]
+            dataset = Dataset(train_imgs, test_imgs, './', data_aug=True)
+        else:
+            dataset = Dataset(None, test_imgs, './')
 
-    # Train the network
-    if train_model:
-        # More training parameters
-        learning_rate = 1e-8
-        save_step = max_training_iters
-        side_supervision = 3
-        display_step = 10
+        # Train the network
+        if train_model:
+            # More training parameters
+            learning_rate = 1e-8
+            save_step = max_training_iters
+            side_supervision = 3
+            display_step = 10
+            with tf.Graph().as_default():
+                with tf.device('/gpu:' + str(gpu_id)):
+                # with tf.device('/cpu:0'):
+                #     import pdb; pdb.set_trace()
+                    global_step = tf.Variable(0, name='global_step', trainable=False)
+                    osvos.train_finetune(dataset, parent_path, side_supervision, learning_rate, logs_path, max_training_iters,
+                                         save_step, display_step, global_step, iter_mean_grad=1, ckpt_name=seq_name)
+
+        # import pdb; pdb.set_trace()
+        # Test the network
         with tf.Graph().as_default():
-            # with tf.device('/gpu:' + str(gpu_id)):
-            with tf.device('/cpu:0'):
-                # import pdb; pdb.set_trace()
-                global_step = tf.Variable(0, name='global_step', trainable=False)
-                osvos.train_finetune(dataset, parent_path, side_supervision, learning_rate, logs_path, max_training_iters,
-                                     save_step, display_step, global_step, iter_mean_grad=1, ckpt_name=seq_name)
-
-    # import pdb; pdb.set_trace()
-    # Test the network
-    with tf.Graph().as_default():
-        with tf.device('/cpu:' + str(gpu_id)):
-            checkpoint_path = os.path.join('models', seq_name, seq_name+'.ckpt-'+str(max_training_iters))
-            osvos.test(dataset, checkpoint_path, result_path)
+            with tf.device('/gpu:' + str(gpu_id)):
+                checkpoint_path = os.path.join('models2', seq_name, n_object, seq_name+'.ckpt-'+str(max_training_iters))
+                osvos.test(dataset, checkpoint_path, result_path)
 
 # Show results
 # overlay_color = [255, 0, 0]
