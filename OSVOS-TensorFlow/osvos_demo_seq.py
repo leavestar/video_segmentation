@@ -49,9 +49,12 @@ def demo(seq_name):
         result_path = os.path.join('..', 'davis-2017', 'data', 'DAVIS', 'Results', 'Segmentations', '480p', 'OSVOS2', seq_name, n_object)
         logs_path = os.path.join('models2', seq_name, n_object)
 
+        if os.path.exists(os.path.join(logs_path, "done")):
+            continue
+
         # Define Dataset
         test_frames = sorted(os.listdir(os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name)))
-        test_imgs = [os.path.join('..', 'davis-2017', 'data','DAVIS', 'JPEGImages', '480p', seq_name, frame) for frame in test_frames]
+        test_imgs = [os.path.join('..', 'davis-2017', 'data', 'DAVIS', 'JPEGImages', '480p', seq_name, frame) for frame in test_frames]
         if train_model:
             # we need to first create a new annotation that has only one object
             base_image = np.zeros_like(an).astype('uint8')
@@ -80,13 +83,18 @@ def demo(seq_name):
                     global_step = tf.Variable(0, name='global_step', trainable=False)
                     osvos.train_finetune(dataset, parent_path, side_supervision, learning_rate, logs_path, max_training_iters,
                                          save_step, display_step, global_step, iter_mean_grad=1, ckpt_name=seq_name)
+        os.makedirs(os.path.join(logs_path, "done"))
 
         # import pdb; pdb.set_trace()
         # Test the network
+        if os.path.exists(os.path.join(result_path, "done")):
+            continue
         with tf.Graph().as_default():
             with tf.device('/gpu:' + str(gpu_id)):
                 checkpoint_path = os.path.join('models2', seq_name, n_object, seq_name+'.ckpt-'+str(max_training_iters))
                 osvos.test(dataset, checkpoint_path, result_path)
+
+        os.makedirs(os.path.join(result_path, "done"))
 
 # Show results
 # overlay_color = [255, 0, 0]
