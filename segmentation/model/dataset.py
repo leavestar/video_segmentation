@@ -10,10 +10,10 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
   maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
   groundtruth_image, _ = davis.io.imread_indexed(groundtruth_file)
 
-  osvos_image = osvos_image[np.newaxis, ...]
-  maskrcnn_image = maskrcnn_image[np.newaxis, ...]
-  # (2, 480, 854)
-  input = np.concatenate((osvos_image, maskrcnn_image), axis=0)
+  osvos_image = osvos_image[..., np.newaxis ]
+  maskrcnn_image = maskrcnn_image[..., np.newaxis]
+  # (480, 854, 2)
+  input = np.concatenate((osvos_image, maskrcnn_image), axis=2)
   print "###################{}".format(input.shape)
   return input, groundtruth_image
 
@@ -25,4 +25,8 @@ def load_data(osvos_files, maskrcnn_files, groundtruth_files):
       tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.uint8, tf.uint8])
     )
   )
+  print "Dataset type{},  shape {}, classes {}".format(
+    training_dataset.output_types,
+    training_dataset.output_shapes,
+    training_dataset.output_classes)
   return training_dataset
