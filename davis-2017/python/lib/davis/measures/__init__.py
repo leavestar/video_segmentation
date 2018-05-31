@@ -17,4 +17,3 @@ except:
   log.warning("Temporal stability not available")
 
 from .statistics import _statistics
-

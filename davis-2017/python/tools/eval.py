@@ -52,7 +52,7 @@ def parse_args():
       '--phase','-p',default=cfg.PHASE.name,type=str,choices=[e.name.lower()
         for e in davis.phase])
 
-  parser.add_argument('--single-object',action='store_true')
+  parser.add_argument('--single-object', action='store_true')
 
   args = parser.parse_args()
 

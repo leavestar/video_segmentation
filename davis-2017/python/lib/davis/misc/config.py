@@ -67,8 +67,8 @@ __C.PATH.PALETTE = osp.abspath(osp.join(__C.PATH.ROOT, 'data/palette.txt'))
 __C.FILES = edict()
 
 # Path to property file, holding information on evaluation sequences.
-# __C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info.yaml"))
-__C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info_test.yaml"))
+__C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info.yaml"))
+# __C.FILES.DB_INFO = osp.abspath(osp.join(__C.PATH.ROOT,"data/db_info_test.yaml"))
 
 # Measures and Statistics
 __C.EVAL = edict()

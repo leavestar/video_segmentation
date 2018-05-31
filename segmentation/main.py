@@ -13,6 +13,8 @@ from model.dataset import load_data, _read_py_function
 
 # User defined parameters
 seq_name = "car-shadow"
+# env = "hyuna915"
+env = "jingle.jiang"
 
 train_model = True
 # root_path = '/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS'
@@ -21,10 +23,16 @@ train_model = True
 # groundtruth_label_path= 'Annotations/480p/'
 # groundtruth_image_path = 'JPEGImages/480p/'
 
-tf.app.flags.DEFINE_string("sequence", "elephant", "which sequence")
-tf.app.flags.DEFINE_string("root_path",
+if env == "jingle.jiang":
+  tf.app.flags.DEFINE_string("root_path",
+                           "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
+                           "Available modes: train / show_examples / official_eval")
+elif env == "hyuna915":
+  tf.app.flags.DEFINE_string("root_path",
                            "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
                            "Available modes: train / show_examples / official_eval")
+
+tf.app.flags.DEFINE_string("sequence", "elephant", "which sequence")
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "")
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS", "")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
@@ -42,6 +50,7 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def main(unused_argv):
+  import pdb; pdb.set_trace()
   osvos_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.osvos_label_path, FLAGS.sequence)
   maskrcnn_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.maskrcnn_label_path, FLAGS.sequence)
   groundtruth_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_label_path, FLAGS.sequence)

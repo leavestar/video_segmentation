@@ -39,6 +39,8 @@ def db_eval_sequence(segmentations,annotations,measure='J',n_jobs=cfg.N_JOBS):
   Returns:
     results (list): ['raw'] per-frame, per-object sequence results.
   """
+  # import pdb; pdb.set_trace()
+  log.info("Evaluating measure: {} on {}".format(measure, segmentations.name))
   segmentations_copy = [None]*len(segmentations)
   for i in range(len(segmentations)):
     new_sg = segmentations[i].copy()
@@ -49,8 +51,18 @@ def db_eval_sequence(segmentations,annotations,measure='J',n_jobs=cfg.N_JOBS):
 
   results = {'raw':[]}
   for obj_id in annotations.iter_objects_id():
+    # import pdb; pdb.set_trace()
     results['raw'].append(Parallel(n_jobs=n_jobs)(delayed(_db_measures[measure])(
       an==obj_id,sg==obj_id) for an,sg in zip(annotations[1:-1],segmentations_copy[1:-1])))
+
+    # test code to confirm that --single-object flag is used to combine all id into 1
+    # test2 = [_ for _ in segmentations_copy[1:-1]]
+    # import numpy as np
+    # np.unique(test2[0])
+    # test1 = [_ for _ in annotations[1:-1]]
+    # np.unique(test1[0])
+    # np.sum(test1[0]==0)
+    # np.sum(test2[0] == 0)
 
   for stat,stat_fuc in measures._statistics.iteritems():
     results[stat] = [float(stat_fuc(r)) for r in results['raw']]
