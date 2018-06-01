@@ -38,8 +38,6 @@ def max_pooling_layer():
 
 # This is a uNet similar neural networks structure
 def model_init_fn(FLAGS, inputs):
-  # TODO(heguangl): make sure the output dimension is (H x W x 1)
-  # TODO(heguangl): reduce network complexity
 
   input_shape = (FLAGS.height, FLAGS.weight, 2)
 
@@ -123,7 +121,7 @@ def model_dim_print(FLAGS, inputs):
   output.append(inputs)
   for index in range(len(layer_list)):
     output.append(layer_list[index](output[index]))
-    print "Layer {} shape:{}".format(index, output[index+1].get_shape())
+    logging.debug("Layer {} shape:{}".format(index, output[index+1].get_shape()))
 
   model = tf.keras.models.Sequential(layers=layer_list)
   return model(inputs=inputs)

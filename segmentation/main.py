@@ -12,9 +12,6 @@ from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim
 from utils.util import load_image_files, check_image_dimension
 import tensorflow.contrib.eager as tfe
 
-# User defined parameters
-seq_name = "car-shadow"
-# env = "hyuna915"
 env = "hyuna915"
 
 train_model = True
@@ -37,19 +34,20 @@ tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundt
 tf.app.flags.DEFINE_string("output_path", "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/", "output_path")
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
-tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
+tf.app.flags.DEFINE_integer("num_epochs", 10, "num_epochs")
 
 tf.app.flags.DEFINE_integer("filter", 64, "weight")
 tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
+tf.app.flags.DEFINE_integer("batch_size", 10, "batch_size")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
-max_training_iters = 500
 FLAGS = tf.app.flags.FLAGS
 
-logging.basicConfig(level=logging.INFO)
 file_handler = logging.FileHandler(os.path.join(FLAGS.output_path, "log.txt"))
+console_handler = logging.StreamHandler()
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
 
 def main(unused_argv):
 
@@ -57,14 +55,12 @@ def main(unused_argv):
   check_image_dimension(FLAGS)
   # construct image files array
   osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS)
-  # Generate tf.data.Dataset
-  segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths).batch(1)
-
-  # Get iterator on dataset
-  dataset_iterator = segmentation_dataset.make_one_shot_iterator()
-  # dataset = segmentation_dataset.batch(1)
-
   # successfully load dataset
+  segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
+  segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
+  segmentation_dataset = segmentation_dataset.batch(FLAGS.batch_size)
+  # segmentation_dataset = segmentation_dataset.repeat(FLAGS.num_epochs)
+
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 2])
     y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
@@ -82,14 +78,22 @@ def main(unused_argv):
   with tf.Session() as sess:
     # print(sess.run(next_element))
     sess.run(tf.global_variables_initializer())
+    logging.info('Global number of params: %d' % sum(v.get_shape().num_elements() for v in tf.trainable_variables()))
     for epoch in range(FLAGS.num_epochs):
+      logging.info("======================== Starting Epoch {} ========================".format(epoch))
+      dataset_iterator = segmentation_dataset.make_one_shot_iterator()
+      batch_num = 0
       while True:
         try:
-          x_np, y_np = sess.run(dataset_iterator.get_next())
-          print "x_np shape: {}, y_np shape: {}".format(x_np.shape, y_np.shape)
+          batch= sess.run(dataset_iterator.get_next())
+          x_np, y_np = batch
+          logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
           feed_dict = {x: x_np, y: y_np}
           loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
+          logging.info("Batch: {} Train Loss: {}".format(batch_num, loss_np))
+          batch_num += 1
         except tf.errors.OutOfRangeError:
+          logging.warn("End of range")
           break
 
 
