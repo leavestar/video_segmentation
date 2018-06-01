@@ -12,9 +12,12 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
 
   osvos_image = osvos_image[..., np.newaxis ]
   maskrcnn_image = maskrcnn_image[..., np.newaxis]
+  groundtruth_image = groundtruth_image[..., np.newaxis]
   # (480, 854, 2)
-  input = np.concatenate((osvos_image, maskrcnn_image), axis=2)
-  print "###################{}".format(input.shape)
+  input = np.concatenate((osvos_image.astype(np.float32), maskrcnn_image.astype(np.float32)), axis=2)
+  groundtruth_image = groundtruth_image.astype(np.float32)
+  print "################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype)
+  print "################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_image.shape, type(groundtruth_image), groundtruth_image.dtype)
   return input, groundtruth_image
 
 def load_data(osvos_files, maskrcnn_files, groundtruth_files):
@@ -22,7 +25,7 @@ def load_data(osvos_files, maskrcnn_files, groundtruth_files):
   training_dataset = tf.data.Dataset.from_tensor_slices(file_tuple)
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_file : tuple(
-      tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.uint8, tf.uint8])
+      tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.float32, tf.float32])
     )
   )
   print "Dataset type{},  shape {}, classes {}".format(
