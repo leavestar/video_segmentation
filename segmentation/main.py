@@ -4,6 +4,8 @@ import numpy as np
 import tensorflow as tf
 
 slim = tf.contrib.slim
+import time
+import json
 import davis
 import logging
 import matplotlib.pyplot as plt
@@ -50,7 +52,6 @@ console_handler = logging.StreamHandler()
 logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
 
 def main(unused_argv):
-
   # Sanity check image dimension
   check_image_dimension(FLAGS)
   # construct image files array
@@ -78,19 +79,21 @@ def main(unused_argv):
   with tf.Session() as sess:
     # print(sess.run(next_element))
     sess.run(tf.global_variables_initializer())
-    logging.info('Global number of params: %d' % sum(v.get_shape().num_elements() for v in tf.trainable_variables()))
+    logging.info("Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
       logging.info("======================== Starting Epoch {} ========================".format(epoch))
       dataset_iterator = segmentation_dataset.make_one_shot_iterator()
       batch_num = 0
       while True:
         try:
+          tic = time.time()
           batch= sess.run(dataset_iterator.get_next())
           x_np, y_np = batch
           logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
           feed_dict = {x: x_np, y: y_np}
           loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
-          logging.info("Batch: {} Train Loss: {}".format(batch_num, loss_np))
+          toc = time.time()
+          logging.info("Batch: {} Train Loss: {}, takes {} seconds".format(batch_num, loss_np, str(toc-tic)))
           batch_num += 1
         except tf.errors.OutOfRangeError:
           logging.warn("End of range")
