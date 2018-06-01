@@ -43,6 +43,11 @@ tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
 tf.app.flags.DEFINE_integer("batch_size", 10, "batch_size")
+tf.app.flags.DEFINE_float("lr", 0.00005, "learning rate")
+tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
+tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
+tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
+tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 FLAGS = tf.app.flags.FLAGS

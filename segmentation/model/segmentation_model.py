@@ -83,7 +83,7 @@ def model_init_fn(FLAGS, inputs):
 
 
 def optimizer_init_fn(FLAGS):
-  optimizer = tf.train.AdamOptimizer(1e-5)
+  optimizer = tf.train.AdamOptimizer(FLAGS.lr)
   return optimizer
 
 
@@ -92,37 +92,45 @@ def model_dim_print(FLAGS, inputs):
   input_shape = (FLAGS.height, FLAGS.weight, 2)
 
   layer_list=[]
-  layer_list.append(convolution_layer(32, input_shape=input_shape))
-  layer_list.append(convolution_layer(32))
-  layer_list.append(max_pooling_layer())
+  if FLAGS.layer32:
+    layer_list.append(convolution_layer(32, input_shape=input_shape))
+    layer_list.append(convolution_layer(32))
+    layer_list.append(max_pooling_layer())
 
-  layer_list.append(convolution_layer(64))
-  layer_list.append(convolution_layer(64))
-  layer_list.append(max_pooling_layer())
+  if FLAGS.layer64:
+    layer_list.append(convolution_layer(64))
+    layer_list.append(convolution_layer(64))
+    layer_list.append(max_pooling_layer())
 
-  layer_list.append(convolution_layer(128))
-  layer_list.append(convolution_layer(128))
-  layer_list.append(max_pooling_layer())
+  if FLAGS.layer128:
+    layer_list.append(convolution_layer(128))
+    layer_list.append(convolution_layer(128))
+    layer_list.append(max_pooling_layer())
 
-  layer_list.append(convolution_layer(256))
-  layer_list.append(convolution_layer(256))
-  layer_list.append(max_pooling_layer())
+  if FLAGS.layer256:
+    layer_list.append(convolution_layer(256))
+    layer_list.append(convolution_layer(256))
+    layer_list.append(max_pooling_layer())
 
-  layer_list.append(concatenated_de_convolution_layer(256))
-  layer_list.append(convolution_layer(256))
-  layer_list.append(convolution_layer(256))
+  if FLAGS.layer256:
+    layer_list.append(concatenated_de_convolution_layer(256))
+    layer_list.append(convolution_layer(256))
+    layer_list.append(convolution_layer(256))
 
-  layer_list.append(concatenated_de_convolution_layer(128))
-  layer_list.append(convolution_layer(128))
-  layer_list.append(convolution_layer(128))
+  if FLAGS.layer128:
+    layer_list.append(concatenated_de_convolution_layer(128))
+    layer_list.append(convolution_layer(128))
+    layer_list.append(convolution_layer(128))
 
-  layer_list.append(concatenated_de_convolution_layer(64))
-  layer_list.append(convolution_layer(64))
-  layer_list.append(convolution_layer(64))
+  if FLAGS.layer64:
+    layer_list.append(concatenated_de_convolution_layer(64))
+    layer_list.append(convolution_layer(64))
+    layer_list.append(convolution_layer(64))
 
-  layer_list.append(concatenated_de_convolution_layer(32))
-  layer_list.append(convolution_layer(32))
-  layer_list.append(convolution_layer(32))
+  if FLAGS.layer32:
+    layer_list.append(concatenated_de_convolution_layer(32))
+    layer_list.append(convolution_layer(32))
+    layer_list.append(convolution_layer(32))
 
   resize_layer = tf.keras.layers.Lambda(lambda image:
                                  tf.image.resize_images(
