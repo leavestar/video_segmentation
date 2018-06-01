@@ -100,6 +100,22 @@ def model_dim_print(FLAGS, inputs):
   layer_list.append(convolution_layer(64))
   layer_list.append(max_pooling_layer())
 
+  layer_list.append(convolution_layer(128))
+  layer_list.append(convolution_layer(128))
+  layer_list.append(max_pooling_layer())
+
+  layer_list.append(convolution_layer(256))
+  layer_list.append(convolution_layer(256))
+  layer_list.append(max_pooling_layer())
+
+  layer_list.append(concatenated_de_convolution_layer(256))
+  layer_list.append(convolution_layer(256))
+  layer_list.append(convolution_layer(256))
+
+  layer_list.append(concatenated_de_convolution_layer(128))
+  layer_list.append(convolution_layer(128))
+  layer_list.append(convolution_layer(128))
+
   layer_list.append(concatenated_de_convolution_layer(64))
   layer_list.append(convolution_layer(64))
   layer_list.append(convolution_layer(64))
@@ -121,7 +137,7 @@ def model_dim_print(FLAGS, inputs):
   output.append(inputs)
   for index in range(len(layer_list)):
     output.append(layer_list[index](output[index]))
-    logging.debug("Layer {} shape:{}".format(index, output[index+1].get_shape()))
+    logging.info("Layer {} shape:{}".format(index, output[index+1].get_shape()))
 
   model = tf.keras.models.Sequential(layers=layer_list)
   return model(inputs=inputs)

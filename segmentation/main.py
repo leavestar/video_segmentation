@@ -36,7 +36,7 @@ tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundt
 tf.app.flags.DEFINE_string("output_path", "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/", "output_path")
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
-tf.app.flags.DEFINE_integer("num_epochs", 10, "num_epochs")
+tf.app.flags.DEFINE_integer("num_epochs", 5, "num_epochs")
 
 tf.app.flags.DEFINE_integer("filter", 64, "weight")
 tf.app.flags.DEFINE_integer("kernel", 3, "weight")
@@ -77,7 +77,6 @@ def main(unused_argv):
 
 
   with tf.Session() as sess:
-    # print(sess.run(next_element))
     sess.run(tf.global_variables_initializer())
     logging.info("Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
@@ -98,7 +97,7 @@ def main(unused_argv):
         except tf.errors.OutOfRangeError:
           logging.warn("End of range")
           break
-
+    tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path+"model.ckpt")
 
 if __name__ == "__main__":
   tf.app.run()
