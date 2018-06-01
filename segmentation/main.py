@@ -14,7 +14,14 @@ from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim
 from utils.util import load_image_files, check_image_dimension
 import tensorflow.contrib.eager as tfe
 
+<<<<<<< HEAD
 env = "hyuna915"
+=======
+# User defined parameters
+seq_name = "car-shadow"
+# env = "hyuna915"
+env = "jingle.jiang"
+>>>>>>> test code dev
 
 train_model = True
 
@@ -22,18 +29,27 @@ if env == "jingle.jiang":
   tf.app.flags.DEFINE_string("root_path",
                            "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
                            "Available modes: train / show_examples / official_eval")
+  tf.app.flags.DEFINE_string("output_path",
+                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/",
+                             "output_path")
+  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
+
 elif env == "hyuna915":
   tf.app.flags.DEFINE_string("root_path",
                            "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
                            "Available modes: train / show_examples / official_eval")
   tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
+  tf.app.flags.DEFINE_string("output_path",
+                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/",
+                             "output_path")
 
-tf.app.flags.DEFINE_string("sequence", "elephant", "which sequence")
+tf.app.flags.DEFINE_string("train_sequence", "elephant", "which sequence")
+tf.app.flags.DEFINE_string("test_sequence", "elephant", "which sequence")
+
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "")
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS", "")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
 tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundtruth_image_path")
-tf.app.flags.DEFINE_string("output_path", "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/", "output_path")
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
 tf.app.flags.DEFINE_integer("num_epochs", 5, "num_epochs")
@@ -59,8 +75,25 @@ logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler]
 def main(unused_argv):
   # Sanity check image dimension
   check_image_dimension(FLAGS)
-  # construct image files array
-  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS)
+
+  # construct image files array for training
+  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, True)
+  # construct image files array for training
+  osvos_label_paths_test, maskrcnn_label_paths_test, groundtruth_label_paths_test = load_image_files(FLAGS, False)
+
+  # import pdb; pdb.set_trace()
+
+  # Generate tf.data.Dataset
+  segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths).batch(1)
+  # for testing, the batch size should be all
+  segmentation_dataset_test = load_data(osvos_label_paths_test,
+                                        maskrcnn_label_paths_test,
+                                        groundtruth_label_paths_test).batch(len(osvos_label_paths_test))
+
+  # Get iterator on dataset
+  dataset_iterator = segmentation_dataset.make_one_shot_iterator()
+  dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
+
   # successfully load dataset
   segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
   segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
@@ -102,7 +135,14 @@ def main(unused_argv):
         except tf.errors.OutOfRangeError:
           logging.warn("End of range")
           break
-    tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path+"model.ckpt")
+
+      # evaluate the model on train-val
+      x_np, y_np = sess.run(dataset_iterator_test.get_next())
+      print "expected x_np_test shape starts with n; x_np shape: {}, y_np shape: {}".format(x_np.shape, y_np.shape)
+      feed_dict = {x: x_np, y: y_np}
+      loss_test = sess.run([loss], feed_dict=feed_dict)
+
+    tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path + "model.ckpt")
 
 if __name__ == "__main__":
   tf.app.run()
