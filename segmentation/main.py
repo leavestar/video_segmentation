@@ -204,7 +204,7 @@ def main(unused_argv):
             "{} Loss after epoch {}: "
             "cross-entropy: {}, "
             "mean J: {}, mean F: {}, "
-            "details: {}; "
+            "DETAILS: {}; "
             "takes {} seconds"
               .format(target, epoch, test_loss, str(davis_f_mean), str(davis_j_mean), detailed_loss, str(time_taken)))
 
@@ -229,7 +229,11 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
       test_loss_, pred_test = sess.run(ops, feed_dict=feed_dict)
 
       # import pdb; pdb.set_trace()
-      N_, H_, W_, _ = pred_test.shape
+      N_, H_, W_, C_ = pred_test.shape
+      logging.info("pred_test.shape=={},{},{},{}".format(str(N_), str(H_), str(W_), str(C_)))
+      # #TODO
+      # if np.sum(pred_test> 1) > 0:
+      #   logging.info("pred_test has {} >0".format(np.sum(pred_test> 1)))
       for i in range(N_):
         seq_name = next(seq_name_iter)
         seq_number = frame_number_by_seq_name.get(seq_name, 0)
@@ -249,6 +253,9 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
         base_image[np.squeeze(pred_test[i, :, :, 0]) > 4.5] = 5
         base_image[np.squeeze(pred_test[i, :, :, 0]) > 5.5] = 6
         base_image[np.squeeze(pred_test[i, :, :, 0]) > 6.5] = 7
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 7.5] = 8
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 8.5] = 9
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 9.5] = 10
         base_image = base_image.astype(np.uint8)
         io.imwrite_indexed(mask_output, base_image)
       test_n += 1

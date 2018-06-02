@@ -73,7 +73,7 @@ def model_init_fn(FLAGS, inputs):
   model.add(convolution_layer(32))
   model.add(convolution_layer(32))
 
-  model.add(convolution_layer(1, kernel=(1, 1), activation='sigmoid'))
+  model.add(convolution_layer(1, kernel=(1, 1), activation='relu'))
 
   return model(inputs=inputs)
 
@@ -134,7 +134,7 @@ def model_dim_print(FLAGS, inputs):
                                         ))
 
   layer_list.append(resize_layer)
-  layer_list.append(convolution_layer(1, kernel=(1, 1), activation='sigmoid'))
+  layer_list.append(convolution_layer(1, kernel=(1, 1), activation='relu'))
 
   output = []
   output.append(inputs)
