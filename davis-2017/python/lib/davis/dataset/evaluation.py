@@ -64,7 +64,7 @@ def db_eval_sequence(segmentations,annotations,measure='J',n_jobs=cfg.N_JOBS):
     # np.sum(test1[0]==0)
     # np.sum(test2[0] == 0)
 
-  for stat,stat_fuc in measures._statistics.iteritems():
+  for stat,stat_fuc in measures._statistics.items():
     results[stat] = [float(stat_fuc(r)) for r in results['raw']]
 
   # Convert to 'float' to save correctly in yaml format
