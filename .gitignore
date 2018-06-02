@@ -11,3 +11,6 @@ OSVOS-TensorFlow/*.pyc
 .DS_Store
 segmentation/Results/*/models/*
 segmentation/Results/*/unet/*
+segmentation/.idea/*
+davis-2017/.idea/*
+*.xml

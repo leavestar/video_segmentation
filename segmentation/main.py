@@ -82,6 +82,13 @@ logger = logging.getLogger('server_logger')
 logger.addHandler(file_handler)
 
 
+def load_seq_from_yaml(train_path):
+  with open(train_path, 'r') as train_stream:
+    train_dict = yaml.load(train_stream)
+  train_seqs = train_dict['sequences']
+  return train_seqs
+
+
 def setup(root_path):
   if not FLAGS.model_label:
     raise Exception("--model_label is required, eg osvos_maskrcnn_0602")
@@ -98,19 +105,15 @@ def setup(root_path):
 
   train_seqs = None
   if FLAGS.train_mode:
-    train_path = os.path.join('.', 'train.yaml')
-    with open(train_path, 'r') as train_stream:
-      train_dict = yaml.load(train_stream)
-    train_seqs = train_dict['sequences']
+    train_seqs = load_seq_from_yaml(os.path.join('.', 'train.yaml'))
 
-  test_path = os.path.join('.', 'test.yaml')
-  with open(test_path, 'r') as test_stream:
-    test_dict = yaml.load(test_stream)
-  test_seqs = test_dict['sequences']
-  return train_seqs, test_seqs
+  train_val = load_seq_from_yaml(os.path.join('.', 'train-sample.yaml'))
+  test_seqs = load_seq_from_yaml(os.path.join('.', 'test-sample.yaml'))
+
+  return train_seqs, train_val, test_seqs
 
 
-def generate_dataset(FLAGS, seqs, is_shuffle=True):
+def generate_dataset(FLAGS, seqs, is_shuffle=False):
   osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, seqs)
   logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
 
@@ -126,13 +129,14 @@ def generate_dataset(FLAGS, seqs, is_shuffle=True):
 
 
 def main(unused_argv):
-  train_seqs, test_seqs = setup(root_path)
+  train_seqs, train_sample, test_seqs = setup(root_path)
   # check_image_dimension(FLAGS, logger, train_seqs)
 
   # construct image files array
   if FLAGS.train_mode:
     segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs)
 
+  segmentation_dataset_val, val_seq_list = generate_dataset(FLAGS, train_sample)
   segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
 
   with tf.device(FLAGS.device):
@@ -181,16 +185,28 @@ def main(unused_argv):
 
           # evaluate the model on train-val
       if epoch % FLAGS.eval_every_n_epochs == 0:
-        logger.info("======================== Starting testing Epoch {} ========================".format(epoch))
-        test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
-          eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops=[loss, pred_mask],
-                            placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
-        logger.info(
-          "Test Loss after epoch {}: "
-          "cross-entropy: {}, "
-          "mean J: {}, mean F: {}, "
-          "takes {} seconds"
-            .format(epoch, test_loss, str(davis_f_mean), str(davis_j_mean), str(time_taken)))
+        for target in ["train-val", "test"]:
+          seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
+          if target == "train-val":
+            seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
+
+          logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
+          test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
+            eval_on_test_data(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
+                              placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
+          unique_seq_name = set(seq_list)
+          detailed_loss = ""
+          for seq_name_ in unique_seq_name:
+            detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
+                                                       str(davis_j[seq_name_]["mean"][0]),
+                                                       str(davis_f[seq_name_]["mean"][0]))
+          logger.info(
+            "{} Loss after epoch {}: "
+            "cross-entropy: {}, "
+            "mean J: {}, mean F: {}, "
+            "details: {}; "
+            "takes {} seconds"
+              .format(target, epoch, test_loss, str(davis_f_mean), str(davis_j_mean), detailed_loss, str(time_taken)))
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
