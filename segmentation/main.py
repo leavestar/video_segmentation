@@ -34,7 +34,7 @@ elif env == "hyuna915":
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
-tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS", "osvos_label_path")
+tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS2", "osvos_label_path")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
 tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundtruth_image_path")
 tf.app.flags.DEFINE_string("output_path",
