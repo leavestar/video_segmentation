@@ -10,7 +10,7 @@ import yaml
 import davis
 import logging
 import matplotlib.pyplot as plt
-from model.dataset import load_data, _read_py_function
+from model.dataset import load_data, _read_py_function, dimension_validation
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print
 from utils.util import load_image_files, check_image_dimension
 import tensorflow.contrib.eager as tfe
@@ -41,7 +41,6 @@ tf.app.flags.DEFINE_string("output_path",
                            "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/",
                            "output_path")
 tf.app.flags.DEFINE_string("model_label", "", "model_label")
-
 
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
@@ -78,9 +77,10 @@ file_handler.setLevel(logging.INFO)
 logger = logging.getLogger('server_logger')
 logger.addHandler(file_handler)
 
+
 def setup(root_path):
   if not FLAGS.model_label:
-     raise Exception("--model_label is required")
+    raise Exception("--model_label is required")
 
   if not os.path.exists(root_path + "/models"):
     os.makedirs(root_path + "/models")
@@ -89,7 +89,7 @@ def setup(root_path):
     logger.info("Output Path found {}".format(root_path + "/models"))
 
   with open(os.path.join(root_path, "flags.json"), 'w') as fout:
-      json.dump(FLAGS.flag_values_dict(), fout)
+    json.dump(FLAGS.flag_values_dict(), fout)
   logger.info("Flags: {}".format(FLAGS.flag_values_dict()))
 
   train_seqs = None
@@ -99,7 +99,7 @@ def setup(root_path):
       train_dict = yaml.load(train_stream)
     train_seqs = train_dict['sequences']
 
-  test_path = os.path.join('.','test.yaml')
+  test_path = os.path.join('.', 'test.yaml')
   with open(test_path, 'r') as test_stream:
     test_dict = yaml.load(test_stream)
   test_seqs = test_dict['sequences']
@@ -109,6 +109,10 @@ def setup(root_path):
 def generate_dataset(FLAGS, seqs, is_shuffle=True):
   osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, seqs)
   logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
+
+  if dimension_validation(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths, logger) is False:
+    raise Exception("Invalid Image Found")
+
   # successfully load dataset
   segmentation_dataset, seqs = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
   if is_shuffle:
@@ -164,7 +168,7 @@ def main(unused_argv):
           break
 
       # evaluate the model on train-val
-      if epoch % FLAGS.eval_every_n_epochs ==0:
+      if epoch % FLAGS.eval_every_n_epochs == 0:
         dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
         test_loss, davis_j, davis_f, test_n = 0.0, 0.0, 0.0, 0
         while True:
@@ -180,9 +184,9 @@ def main(unused_argv):
             N_, H_, W_, _ = pred_test.shape
             # save predicted mask to somewhere
             for i in range(N_):
-              mask_output = "{}/{:05d}.png".format(mask_output_dir, i+test_n)
+              mask_output = "{}/{:05d}.png".format(mask_output_dir, i + test_n)
               base_image = np.zeros((H_, W_))
-              base_image[np.squeeze(pred_test[i,:,:,0]) > 0.5] = 1
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 0.5] = 1
               base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
               base_image[np.squeeze(pred_test[i, :, :, 0]) > 2.5] = 3
               base_image[np.squeeze(pred_test[i, :, :, 0]) > 3.5] = 4
@@ -200,9 +204,10 @@ def main(unused_argv):
           except tf.errors.OutOfRangeError:
             logging.warn("End of test range")
             break
-        logging.info("Test Loss after batch {}: {}, takes {} seconds".format(batch_num, test_loss/test_n, str(toc - tic)))
+        logging.info(
+          "Test Loss after batch {}: {}, takes {} seconds".format(batch_num, test_loss / test_n, str(toc - tic)))
 
-    tf.train.Saver().save(sess=sess, save_path=root_path +"/models/model.ckpt")
+    tf.train.Saver().save(sess=sess, save_path=root_path + "/models/model.ckpt")
 
 
 if __name__ == "__main__":
