@@ -1,5 +1,6 @@
 davis-2017/DAVIS/*
 .idea/*
+*/.idea/*
 davis-2017/.idea/*
 coco/*
 OSVOS-TensorFlow/.idea/*

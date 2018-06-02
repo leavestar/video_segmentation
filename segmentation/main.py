@@ -18,7 +18,7 @@ import tensorflow.contrib.eager as tfe
 from davis import *
 
 env = "jingle.jiang"
-train_model = True
+# train_model = True
 
 if env == "jingle.jiang":
 
@@ -59,7 +59,7 @@ tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
 
 tf.app.flags.DEFINE_integer("eval_every_n_epochs", 1, "eval on test every n trainig epoch")
-tf.app.flags.DEFINE_integer("save_every_n_epochs", 1, "save on test every n trainig epoch")
+tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save on test every n trainig epoch")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 FLAGS = tf.app.flags.FLAGS
@@ -146,23 +146,31 @@ def main(unused_argv):
     logger.info(
       "Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
-      logger.info("======================== Starting Epoch {} ========================".format(epoch))
-      dataset_iterator = segmentation_dataset.make_one_shot_iterator()
-      batch_num = 0
-      while True:
-        try:
-          tic = time.time()
-          batch = sess.run(dataset_iterator.get_next())
-          x_np, y_np = batch
-          logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
-          feed_dict = {x: x_np, y: y_np}
-          loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
-          toc = time.time()
-          logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
-          batch_num += 1
-        except tf.errors.OutOfRangeError:
-          logger.warn("End of range")
-          break
+      if FLAGS.train_mode:
+        logger.info("======================== Starting Epoch {} ========================".format(epoch))
+        dataset_iterator = segmentation_dataset.make_one_shot_iterator()
+        batch_num = 0
+        while True:
+          try:
+            tic = time.time()
+            batch = sess.run(dataset_iterator.get_next())
+            x_np, y_np = batch
+            # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
+            # further, FLAGS.batch_size==10
+            logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
+            feed_dict = {x: x_np, y: y_np}
+            loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
+            toc = time.time()
+            logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
+            batch_num += 1
+          except tf.errors.OutOfRangeError:
+            logger.warn("End of range")
+            break
+
+        if epoch % FLAGS.save_every_n_epochs == 0:
+          if not os.path.exists(os.path.join(root_path, "models/tmp/epoch_{}/model.ckpt".format(str(epoch)))):
+            os.makedirs(os.path.join(root_path, "models/tmp/epoch_{}/model.ckpt".format(str(epoch))))
+          tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
           # evaluate the model on train-val
       if epoch % FLAGS.eval_every_n_epochs == 0:
@@ -177,7 +185,6 @@ def main(unused_argv):
           "takes {} seconds"
             .format(epoch, test_loss, str(davis_f_mean), str(davis_j_mean), str(time_taken)))
 
-    tf.train.Saver().save(sess=sess, save_path=root_path + "/models/model.ckpt")
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
   # import pdb; pdb.set_trace()
@@ -193,6 +200,8 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
   while True:
     try:
       x_np, y_np = sess.run(dataset_iterator_test.get_next())
+      # it seems x_np has shape (2, 480, 854, 2) and y_np has shape (2, 480, 854, 1)
+      # this is a little unintuitive as we expect it to be batch_size
       feed_dict = {x: x_np, y: y_np}
       test_loss_, pred_test = sess.run(ops, feed_dict=feed_dict)
 
@@ -234,6 +243,7 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
 
     ground_truth_dir_ = "{}/{}/{}".format(FLAGS.read_path, FLAGS.groundtruth_label_path, seq_name)
     ground_truth = Segmentation(ground_truth_dir_, False)
+
     davis_j[seq_name] = db_eval_sequence(sg, ground_truth, measure="J", n_jobs=32)
     davis_f[seq_name] = db_eval_sequence(sg, ground_truth, measure="F", n_jobs=32)
     davis_j_mean += davis_j[seq_name]["mean"][0]
