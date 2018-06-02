@@ -8,3 +8,6 @@ OSVOS-TensorFlow/DAVIS/*
 OSVOS-TensorFlow/models/*
 OSVOS-TensorFlow/*.pyc
 *.pyc
+.DS_Store
+segmentation/Results/*/models/*
+segmentation/Results/*/unet/*
