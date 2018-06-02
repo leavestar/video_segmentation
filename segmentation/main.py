@@ -62,6 +62,8 @@ tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
 tf.app.flags.DEFINE_string("test_mask_output",
                            "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/unet",
                            "where to save test mask")
+tf.app.flags.DEFINE_integer("eval_every_n_epochs", 1, "eval on test every n trainig epoch")
+tf.app.flags.DEFINE_integer("save_every_n_epochs", 1, "save on test every n trainig epoch")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 FLAGS = tf.app.flags.FLAGS
@@ -86,7 +88,7 @@ def main(unused_argv):
   # for testing, the batch size should be all
   segmentation_dataset_test = load_data(osvos_label_paths_test,
                                         maskrcnn_label_paths_test,
-                                        groundtruth_label_paths_test).batch(len(osvos_label_paths_test))
+                                        groundtruth_label_paths_test).batch(1)
 
   # Get iterator on dataset
   # dataset_iterator = segmentation_dataset.make_one_shot_iterator()
@@ -130,28 +132,48 @@ def main(unused_argv):
           logging.info("Batch: {} Train Loss: {}, takes {} seconds".format(batch_num, loss_np, str(toc-tic)))
           batch_num += 1
         except tf.errors.OutOfRangeError:
-          logging.warn("End of range")
+          logging.warn("End of training range")
           break
 
       # evaluate the model on train-val
-      dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
-      x_np, y_np = sess.run(dataset_iterator_test.get_next())
-      feed_dict = {x: x_np, y: y_np}
-      loss_test, pred_test = sess.run([loss, pred_mask], feed_dict=feed_dict)
+      if epoch % FLAGS.eval_every_n_epochs ==0:
+        dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
+        test_loss, davis_j, davis_f, test_n = 0.0, 0.0, 0.0, 0
+        while True:
+          try:
+            x_np, y_np = sess.run(dataset_iterator_test.get_next())
+            feed_dict = {x: x_np, y: y_np}
+            test_loss_, pred_test = sess.run([loss, pred_mask], feed_dict=feed_dict)
 
-      # import pdb; pdb.set_trace()
-      mask_output_dir = "{}/{}/{}".format(FLAGS.test_mask_output, FLAGS.test_sequence, str(epoch))
-      if not os.path.exists(mask_output_dir):
-        os.makedirs(mask_output_dir)
-      N_, H_, W_, _ = pred_test.shape
-      # save predicted mask to somewhere
-      for i in range(N_):
-        mask_output = "{}/{:05d}.png".format(mask_output_dir, i)
-        base_image = np.zeros((H_, W_))
-        base_image[np.squeeze(pred_test[i,:,:,0]) > 0.5] = 1
-        base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
-        base_image = base_image.astype(np.uint8)
-        io.imwrite_indexed(mask_output, base_image)
+            # import pdb; pdb.set_trace()
+            mask_output_dir = "{}/{}/{}".format(FLAGS.test_mask_output, FLAGS.test_sequence, str(epoch))
+            if not os.path.exists(mask_output_dir):
+              os.makedirs(mask_output_dir)
+            N_, H_, W_, _ = pred_test.shape
+            # save predicted mask to somewhere
+            for i in range(N_):
+              mask_output = "{}/{:05d}.png".format(mask_output_dir, i+test_n)
+              base_image = np.zeros((H_, W_))
+              base_image[np.squeeze(pred_test[i,:,:,0]) > 0.5] = 1
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 2.5] = 3
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 3.5] = 4
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 4.5] = 5
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 5.5] = 6
+              base_image[np.squeeze(pred_test[i, :, :, 0]) > 6.5] = 7
+              base_image = base_image.astype(np.uint8)
+              io.imwrite_indexed(mask_output, base_image)
+
+              # not finish yet! eval davis performance
+
+            test_n += len(test_loss_)
+            test_loss += test_loss_
+
+          except tf.errors.OutOfRangeError:
+            logging.warn("End of test range")
+            break
+
+        logging.info("Test Loss after batch {}: {}, takes {} seconds".format(batch_num, test_loss/test_n, str(toc - tic)))
 
     tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path + "model.ckpt")
 
