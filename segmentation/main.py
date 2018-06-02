@@ -17,7 +17,7 @@ import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "hyuna915"
+env = "jingle.jiang"
 train_model = True
 
 if env == "jingle.jiang":
@@ -29,8 +29,8 @@ elif env == "hyuna915":
   tf.app.flags.DEFINE_string("read_path",
                              "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
                              "Available modes: train / show_examples / official_eval")
-  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
 
+tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
@@ -58,9 +58,6 @@ tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
 
-tf.app.flags.DEFINE_string("test_mask_output",
-                           "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/unet",
-                           "where to save test mask")
 tf.app.flags.DEFINE_integer("eval_every_n_epochs", 1, "eval on test every n trainig epoch")
 tf.app.flags.DEFINE_integer("save_every_n_epochs", 1, "save on test every n trainig epoch")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
@@ -167,48 +164,86 @@ def main(unused_argv):
           logger.warn("End of range")
           break
 
-      # evaluate the model on train-val
+          # evaluate the model on train-val
       if epoch % FLAGS.eval_every_n_epochs == 0:
-        dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
-        test_loss, davis_j, davis_f, test_n = 0.0, 0.0, 0.0, 0
-        while True:
-          try:
-            x_np, y_np = sess.run(dataset_iterator_test.get_next())
-            feed_dict = {x: x_np, y: y_np}
-            test_loss_, pred_test = sess.run([loss, pred_mask], feed_dict=feed_dict)
-
-            # import pdb; pdb.set_trace()
-            mask_output_dir = "{}/{}/{}".format(FLAGS.test_mask_output, FLAGS.test_sequence, str(epoch))
-            if not os.path.exists(mask_output_dir):
-              os.makedirs(mask_output_dir)
-            N_, H_, W_, _ = pred_test.shape
-            # save predicted mask to somewhere
-            for i in range(N_):
-              mask_output = "{}/{:05d}.png".format(mask_output_dir, i + test_n)
-              base_image = np.zeros((H_, W_))
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 0.5] = 1
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 2.5] = 3
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 3.5] = 4
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 4.5] = 5
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 5.5] = 6
-              base_image[np.squeeze(pred_test[i, :, :, 0]) > 6.5] = 7
-              base_image = base_image.astype(np.uint8)
-              io.imwrite_indexed(mask_output, base_image)
-
-              # not finish yet! eval davis performance
-
-            test_n += 1
-            test_loss += test_loss_
-
-          except tf.errors.OutOfRangeError:
-            logging.warn("End of test range")
-            break
+        logger.info("======================== Starting testing Epoch {} ========================".format(epoch))
+        test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
+          eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops=[loss, pred_mask],
+                            placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
         logging.info(
-          "Test Loss after batch {}: {}, takes {} seconds".format(batch_num, test_loss / test_n, str(toc - tic)))
+          "Test Loss after epoch {}: "
+          "cross-entropy: {}, "
+          "mean J: {}, mean F: {}, "
+          "takes {} seconds"
+            .format(epoch, test_loss, str(davis_f_mean), str(davis_j_mean), str(time_taken)))
 
     tf.train.Saver().save(sess=sess, save_path=root_path + "/models/model.ckpt")
 
+def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
+  # import pdb; pdb.set_trace()
+  tic = time.time()
+  [x, y] = placeholder
+  dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
+  test_loss, davis_j, davis_f, test_n = 0.0, {}, {}, 0
+  seq_name_iter = iter(test_seq_list)
+
+  test_mask_output = os.path.join(root_path, "unet")
+  # save predicted mask to somewhere
+  frame_number_by_seq_name = {}
+  while True:
+    try:
+      x_np, y_np = sess.run(dataset_iterator_test.get_next())
+      feed_dict = {x: x_np, y: y_np}
+      test_loss_, pred_test = sess.run(ops, feed_dict=feed_dict)
+
+      # import pdb; pdb.set_trace()
+      N_, H_, W_, _ = pred_test.shape
+      for i in range(N_):
+        seq_name = next(seq_name_iter)
+        seq_number = frame_number_by_seq_name.get(seq_name, 0)
+        frame_number_by_seq_name[seq_name] = seq_number + 1
+        # import pdb; pdb.set_trace()
+        mask_output_dir = "{}/{}/{}/{}".format(test_mask_output, seq_name, str(epoch), seq_name)
+        # print mask_output_dir
+        if not os.path.exists(mask_output_dir):
+          os.makedirs(mask_output_dir)
+
+        mask_output = "{}/{:05d}.png".format(mask_output_dir, seq_number)
+        base_image = np.zeros((H_, W_))
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 0.5] = 1
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 2.5] = 3
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 3.5] = 4
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 4.5] = 5
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 5.5] = 6
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 6.5] = 7
+        base_image = base_image.astype(np.uint8)
+        io.imwrite_indexed(mask_output, base_image)
+      test_n += 1
+      test_loss += test_loss_
+    except tf.errors.OutOfRangeError:
+      logging.warn("End of test range")
+      break
+
+  # not finish yet! eval davis performance
+  unique_seq_name = set(test_seq_list)
+  davis_j_mean, davis_f_mean = 0.0, 0.0
+  for seq_name in unique_seq_name:
+    mask_output_dir = "{}/{}/{}/{}".format(test_mask_output, seq_name, str(epoch), seq_name)
+    sg = Segmentation(mask_output_dir, False)
+
+    ground_truth_dir_ = "{}/{}/{}".format(FLAGS.read_path, FLAGS.groundtruth_label_path, seq_name)
+    ground_truth = Segmentation(ground_truth_dir_, False)
+    davis_j[seq_name] = db_eval_sequence(sg, ground_truth, measure="J", n_jobs=32)
+    davis_f[seq_name] = db_eval_sequence(sg, ground_truth, measure="F", n_jobs=32)
+    davis_j_mean += davis_j[seq_name]["mean"][0]
+    davis_f_mean += davis_f[seq_name]["mean"][0]
+
+  toc = time.time()
+  if test_n == 0:
+    test_n = 1
+  return test_loss / test_n, davis_j, davis_f, \
+         davis_j_mean / len(unique_seq_name), davis_f_mean / len(unique_seq_name), toc - tic
 
 if __name__ == "__main__":
   tf.app.run()

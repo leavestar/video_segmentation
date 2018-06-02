@@ -2479,6 +2479,7 @@ class MaskRCNN():
         # Process detections
         results = []
         for i, image in enumerate(images):
+            import pdb; pdb.set_trace()
             final_rois, final_class_ids, final_scores, final_masks =\
                 self.unmold_detections(detections[i], mrcnn_mask[i],
                                        image.shape, molded_images[i].shape,

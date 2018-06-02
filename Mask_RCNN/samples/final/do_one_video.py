@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 # use davis format to save
 from davis import *
 
+
+OVERWRITE = True
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
 
@@ -67,7 +69,12 @@ class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
                'teddy bear', 'hair drier', 'toothbrush']
 
 
-FOLDER_NAMES = [_ for _ in cfg.SEQUENCES.keys()]
+# FOLDER_NAMES = [_ for _ in cfg.SEQUENCES.keys()]
+# FOLDER_NAMES = ['cat-girl', 'night-race', 'rallye', 'disc-jockey', 'soccerball',
+#                  'koala', 'car-turn', 'surf', 'bmx-bumps', 'mallard-fly', 'drift-turn',
+#                 'cats-car', 'skate-jump', 'slackline']
+
+FOLDER_NAMES = ['koala']
 #TODO hardcoded Directory of images to run detection on
 # let's do this iteratively
 IMAGE_DIR_ = os.path.join(ROOT_DIR, "../davis-2017/data/DAVIS/JPEGImages/480p/")
@@ -85,7 +92,7 @@ for folder in FOLDER_NAMES:
     start_from = 0
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
-    else:
+    elif not OVERWRITE:
         saved_ = [file for file in os.listdir(SAVE_DIR) if file.endswith(".png")]
         start_from = len(saved_)
 
@@ -93,10 +100,12 @@ for folder in FOLDER_NAMES:
     files = []
 
     for count, file in enumerate(FILES):
-        if count < start_from:
+        # if count < start_from:
+        if count != 75 and count != 76:
             continue
         print(folder + ": " + file + " out of " + str(len(os.listdir(IMAGE_DIR))))
         image = skimage.io.imread(os.path.join(IMAGE_DIR, file))
+        print ("image format: {}".format(image.shape))
         images.append(image)
         files.append(file)
 
@@ -108,11 +117,13 @@ for folder in FOLDER_NAMES:
                 files.append(file)
 
         if len(images) == config.IMAGES_PER_GPU:
+            # import pdb; pdb.set_trace()
             results = model.detect(images, verbose=0)
             # save
             for file_, result_ in zip(files, results):
                 data = np.squeeze(result_["masks"])
                 data = data.astype('uint8')
+                print ("data format: {}".format(data.shape))
                 if np.atleast_3d(data).shape[2] != 1:
                     # when we detect more then one items
                     if data.shape[2] == 0:
