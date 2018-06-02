@@ -42,8 +42,9 @@ def load_data(osvos_files, maskrcnn_files, groundtruth_files):
       tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.float32, tf.float32])
     )
   )
+  sequence_list = [file.split('/')[-2] for file in osvos_files]
   logging.debug("Dataset type{},  shape {}, classes {}".format(
     training_dataset.output_types,
     training_dataset.output_shapes,
     training_dataset.output_classes))
-  return training_dataset
+  return training_dataset, sequence_list

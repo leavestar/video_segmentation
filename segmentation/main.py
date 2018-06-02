@@ -106,14 +106,15 @@ def setup(root_path):
   return train_seqs, test_seqs
 
 
-def generate_dataset(FLAGS, seqs):
+def generate_dataset(FLAGS, seqs, is_shuffle=True):
   osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, seqs)
   logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
   # successfully load dataset
-  segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
-  segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
+  segmentation_dataset, seqs = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
+  if is_shuffle:
+    segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
   segmentation_dataset = segmentation_dataset.batch(FLAGS.batch_size)
-  return segmentation_dataset
+  return segmentation_dataset, seqs
 
 
 def main(unused_argv):
@@ -122,9 +123,9 @@ def main(unused_argv):
 
   # construct image files array
   if FLAGS.train_mode:
-    segmentation_dataset = generate_dataset(FLAGS, train_seqs)
+    segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs)
 
-  segmentation_dataset_test = generate_dataset(FLAGS, test_seqs)
+  segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
 
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 2])
