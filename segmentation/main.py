@@ -58,7 +58,7 @@ tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
 
-tf.app.flags.DEFINE_integer("eval_every_n_epochs", 1, "eval on test every n trainig epoch")
+tf.app.flags.DEFINE_integer("eval_every_n_epochs", 2, "eval on test every n trainig epoch")
 tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save on test every n trainig epoch")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
@@ -147,7 +147,7 @@ def main(unused_argv):
       "Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
       if FLAGS.train_mode:
-        logger.info("======================== Starting Epoch {} ========================".format(epoch))
+        logger.info("======================== Starting training Epoch {} ========================".format(epoch))
         dataset_iterator = segmentation_dataset.make_one_shot_iterator()
         batch_num = 0
         while True:
@@ -178,7 +178,7 @@ def main(unused_argv):
         test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
           eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops=[loss, pred_mask],
                             placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
-        logging.info(
+        logger.info(
           "Test Loss after epoch {}: "
           "cross-entropy: {}, "
           "mean J: {}, mean F: {}, "
@@ -231,7 +231,7 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
       test_n += 1
       test_loss += test_loss_
     except tf.errors.OutOfRangeError:
-      logging.warn("End of test range")
+      logger.warn("End of test range")
       break
 
   # not finish yet! eval davis performance
