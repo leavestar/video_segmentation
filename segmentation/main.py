@@ -17,29 +17,37 @@ import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "jingle.jiang"
+env = "cloud"
 # train_model = True
 
 if env == "jingle.jiang":
 
   tf.app.flags.DEFINE_string("read_path",
                              "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
-                             "Available modes: train / show_examples / official_eval")
+                             "read_path")
+  tf.app.flags.DEFINE_string("output_path",
+                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/segmentation/Results/",
+                             "output_path")
+  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
 elif env == "hyuna915":
   tf.app.flags.DEFINE_string("read_path",
                              "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
-                             "Available modes: train / show_examples / official_eval")
+                             "read_path")
+  tf.app.flags.DEFINE_string("output_path",
+                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/segmentation/Results/",
+                             "output_path")
+  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
+elif env == "cloud":
+  tf.app.flags.DEFINE_string("read_path", "/home/shared/video_segmentation/davis-2017/data/DAVIS", "read_path")
+  tf.app.flags.DEFINE_string("output_path", "/home/shared/video_segmentation/segmentation/Results/", "output_path")
+  tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
-tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
-
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS2-convert", "osvos_label_path")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
 tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundtruth_image_path")
-tf.app.flags.DEFINE_string("output_path",
-                           "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/",
-                           "output_path")
+
 tf.app.flags.DEFINE_string("model_label", "", "model_label")
 
 tf.app.flags.DEFINE_integer("height", 480, "height")
@@ -49,18 +57,17 @@ tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
 
-tf.app.flags.DEFINE_integer("batch_size", 10, "batch_size")
+tf.app.flags.DEFINE_integer("batch_size", 15, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
-tf.app.flags.DEFINE_float("lr", 0.00003, "learning rate")
+tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
 
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
 tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
-tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
+tf.app.flags.DEFINE_boolean("layer256", False, "layer256")
 
 tf.app.flags.DEFINE_integer("eval_every_n_epochs", 2, "eval on test every n trainig epoch")
 tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save on test every n trainig epoch")
-# tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -77,7 +84,7 @@ logger.addHandler(file_handler)
 
 def setup(root_path):
   if not FLAGS.model_label:
-    raise Exception("--model_label is required")
+    raise Exception("--model_label is required, eg osvos_maskrcnn_0602")
 
   if not os.path.exists(root_path + "/models"):
     os.makedirs(root_path + "/models")
@@ -254,6 +261,7 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
     test_n = 1
   return test_loss / test_n, davis_j, davis_f, \
          davis_j_mean / len(unique_seq_name), davis_f_mean / len(unique_seq_name), toc - tic
+
 
 if __name__ == "__main__":
   tf.app.run()
