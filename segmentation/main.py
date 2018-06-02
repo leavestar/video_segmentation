@@ -6,6 +6,7 @@ import tensorflow as tf
 slim = tf.contrib.slim
 import time
 import json
+import yaml
 import davis
 import logging
 import matplotlib.pyplot as plt
@@ -16,44 +17,43 @@ import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "jingle.jiang"
+env = "hyuna915"
 train_model = True
 
 if env == "jingle.jiang":
-  tf.app.flags.DEFINE_string("root_path",
-                           "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
-                           "Available modes: train / show_examples / official_eval")
-  tf.app.flags.DEFINE_string("output_path",
-                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/",
-                             "output_path")
-  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
 
+  tf.app.flags.DEFINE_string("read_path",
+                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
+                             "Available modes: train / show_examples / official_eval")
 elif env == "hyuna915":
-  tf.app.flags.DEFINE_string("root_path",
-                           "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
-                           "Available modes: train / show_examples / official_eval")
+  tf.app.flags.DEFINE_string("read_path",
+                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
+                             "Available modes: train / show_examples / official_eval")
   tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
-  tf.app.flags.DEFINE_string("output_path",
-                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/",
-                             "output_path")
 
-tf.app.flags.DEFINE_string("train_sequence", "elephant", "which sequence")
-tf.app.flags.DEFINE_string("test_sequence", "elephant", "which sequence")
+tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 
-tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "")
-tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS", "")
+tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
+tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS", "osvos_label_path")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
 tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundtruth_image_path")
+tf.app.flags.DEFINE_string("output_path",
+                           "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/",
+                           "output_path")
+tf.app.flags.DEFINE_string("model_label", "", "model_label")
+
+
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
-tf.app.flags.DEFINE_integer("num_epochs", 5, "num_epochs")
-
 tf.app.flags.DEFINE_integer("filter", 64, "weight")
 tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
+
 tf.app.flags.DEFINE_integer("batch_size", 10, "batch_size")
-tf.app.flags.DEFINE_float("lr", 0.00008, "learning rate")
+tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
+tf.app.flags.DEFINE_float("lr", 0.00003, "learning rate")
+
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
 tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
@@ -68,36 +68,60 @@ tf.app.flags.DEFINE_integer("save_every_n_epochs", 1, "save on test every n trai
 
 FLAGS = tf.app.flags.FLAGS
 
-file_handler = logging.FileHandler(os.path.join(FLAGS.output_path, "log.txt"))
-console_handler = logging.StreamHandler()
-logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
+root_path = os.path.join(FLAGS.output_path, FLAGS.model_label)
 
-def main(unused_argv):
-  # Sanity check image dimension
-  check_image_dimension(FLAGS)
+file_handler = logging.FileHandler(root_path + "/log.txt")
+file_handler.setLevel(logging.INFO)
+logger = logging.getLogger('server_logger')
+logger.addHandler(file_handler)
 
-  # construct image files array for training
-  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, True)
-  # construct image files array for training
-  osvos_label_paths_test, maskrcnn_label_paths_test, groundtruth_label_paths_test = load_image_files(FLAGS, False)
+def setup(root_path):
+  if not FLAGS.model_label:
+     raise Exception("--model_label is required")
 
-  # import pdb; pdb.set_trace()
+  if not os.path.exists(root_path):
+    os.makedirs(root_path)
+    os.makedirs(root_path + "/models")
+    logger.info("Output path not found, create {}".format(root_path))
+  else:
+    logger.info("Output Path found {}".format(root_path))
 
-  # Generate tf.data.Dataset
-  segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths).batch(1)
-  # for testing, the batch size should be all
-  segmentation_dataset_test = load_data(osvos_label_paths_test,
-                                        maskrcnn_label_paths_test,
-                                        groundtruth_label_paths_test).batch(1)
+  with open(os.path.join(root_path, "flags.json"), 'w') as fout:
+      json.dump(FLAGS.flag_values_dict(), fout)
+  logger.info("Flags: {}".format(FLAGS.flag_values_dict()))
 
-  # Get iterator on dataset
-  # dataset_iterator = segmentation_dataset.make_one_shot_iterator()
+  train_seqs = None
+  if FLAGS.train_mode:
+    train_path = os.path.join('.', 'train.yaml')
+    train_stream = file(train_path, 'r')
+    train_dict = yaml.load(train_stream)
+    train_seqs = train_dict['sequences']
 
+  test_path = os.path.join('.','test.yaml')
+  test_stream = file(test_path, 'r')
+  test_dict = yaml.load(test_stream)
+  test_seqs = test_dict['sequences']
+  return train_seqs, test_seqs
+
+
+def generate_dataset(FLAGS, seqs):
+  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, seqs)
+  logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
   # successfully load dataset
   segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
   segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
   segmentation_dataset = segmentation_dataset.batch(FLAGS.batch_size)
-  # segmentation_dataset = segmentation_dataset.repeat(FLAGS.num_epochs)
+  return segmentation_dataset
+
+
+def main(unused_argv):
+  train_seqs, test_seqs = setup(root_path)
+
+  # construct image files array
+  if FLAGS.train_mode:
+    segmentation_dataset = generate_dataset(FLAGS, train_seqs)
+
+  segmentation_dataset_test = generate_dataset(FLAGS, test_seqs)
 
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 2])
@@ -112,27 +136,27 @@ def main(unused_argv):
     with tf.control_dependencies(update_ops):
       train_op = optimizer.minimize(loss)
 
-
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    logging.info("Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
+    logger.info(
+      "Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
-      logging.info("======================== Starting Epoch {} ========================".format(epoch))
+      logger.info("======================== Starting Epoch {} ========================".format(epoch))
       dataset_iterator = segmentation_dataset.make_one_shot_iterator()
       batch_num = 0
       while True:
         try:
           tic = time.time()
-          batch= sess.run(dataset_iterator.get_next())
+          batch = sess.run(dataset_iterator.get_next())
           x_np, y_np = batch
           logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
           feed_dict = {x: x_np, y: y_np}
           loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
           toc = time.time()
-          logging.info("Batch: {} Train Loss: {}, takes {} seconds".format(batch_num, loss_np, str(toc-tic)))
+          logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
           batch_num += 1
         except tf.errors.OutOfRangeError:
-          logging.warn("End of training range")
+          logger.warn("End of range")
           break
 
       # evaluate the model on train-val
@@ -172,10 +196,10 @@ def main(unused_argv):
           except tf.errors.OutOfRangeError:
             logging.warn("End of test range")
             break
-
         logging.info("Test Loss after batch {}: {}, takes {} seconds".format(batch_num, test_loss/test_n, str(toc - tic)))
 
-    tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path + "model.ckpt")
+    tf.train.Saver().save(sess=sess, save_path=root_path +"/models/model.ckpt")
+
 
 if __name__ == "__main__":
   tf.app.run()
