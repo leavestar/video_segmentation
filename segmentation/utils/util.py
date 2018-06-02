@@ -8,11 +8,12 @@ import davis
 
 logging.basicConfig(level=logging.INFO)
 
-def load_image_files(FLAGS):
-  osvos_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.osvos_label_path, FLAGS.sequence)
-  maskrcnn_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.maskrcnn_label_path, FLAGS.sequence)
-  groundtruth_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_label_path, FLAGS.sequence)
-  groundtruth_image_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_image_path, FLAGS.sequence)
+def load_image_files(FLAGS, train=True):
+  sequence = FLAGS.train_sequence if train else FLAGS.test_sequence
+  osvos_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.osvos_label_path, sequence)
+  maskrcnn_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.maskrcnn_label_path, sequence)
+  groundtruth_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_label_path, sequence)
+  groundtruth_image_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_image_path, sequence)
 
   osvos_label_paths = []
   maskrcnn_label_paths = []
@@ -21,6 +22,7 @@ def load_image_files(FLAGS):
 
   for file in os.listdir(groundtruth_label_path):
     if re.match(r'[0-9]+.*\.png', file):
+    # if re.match(r'0000[0-2]+.*\.png', file):
       osvos_label_paths.append(osvos_label_path + file)
       maskrcnn_label_paths.append(maskrcnn_label_path + file)
       groundtruth_label_paths.append(groundtruth_label_path + file)
@@ -34,11 +36,12 @@ def load_image_files(FLAGS):
   return osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths
 
 
-def check_image_dimension(FLAGS):
-  osvos_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.osvos_label_path, FLAGS.sequence)
-  maskrcnn_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.maskrcnn_label_path, FLAGS.sequence)
-  groundtruth_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_label_path, FLAGS.sequence)
-  groundtruth_image_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_image_path, FLAGS.sequence)
+def check_image_dimension(FLAGS, train=True):
+  sequence = FLAGS.train_sequence if train else FLAGS.test_sequence
+  osvos_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.osvos_label_path, sequence)
+  maskrcnn_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.maskrcnn_label_path, sequence)
+  groundtruth_label_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_label_path, sequence)
+  groundtruth_image_path = "{}/{}/{}/".format(FLAGS.root_path, FLAGS.groundtruth_image_path, sequence)
 
   osvos_image, _ = davis.io.imread_indexed(osvos_label_path + '00000.png')
   osvos_image = osvos_image[np.newaxis, ...]

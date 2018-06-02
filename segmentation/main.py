@@ -14,15 +14,9 @@ from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim
 from utils.util import load_image_files, check_image_dimension
 import tensorflow.contrib.eager as tfe
 
-<<<<<<< HEAD
-env = "hyuna915"
-=======
-# User defined parameters
-seq_name = "car-shadow"
-# env = "hyuna915"
-env = "jingle.jiang"
->>>>>>> test code dev
+from davis import *
 
+env = "jingle.jiang"
 train_model = True
 
 if env == "jingle.jiang":
@@ -59,11 +53,15 @@ tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
 tf.app.flags.DEFINE_integer("batch_size", 10, "batch_size")
-tf.app.flags.DEFINE_float("lr", 0.00005, "learning rate")
+tf.app.flags.DEFINE_float("lr", 0.00008, "learning rate")
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
 tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", True, "layer256")
+
+tf.app.flags.DEFINE_string("test_mask_output",
+                           "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS/unet",
+                           "where to save test mask")
 # tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 FLAGS = tf.app.flags.FLAGS
@@ -91,8 +89,7 @@ def main(unused_argv):
                                         groundtruth_label_paths_test).batch(len(osvos_label_paths_test))
 
   # Get iterator on dataset
-  dataset_iterator = segmentation_dataset.make_one_shot_iterator()
-  dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
+  # dataset_iterator = segmentation_dataset.make_one_shot_iterator()
 
   # successfully load dataset
   segmentation_dataset = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
@@ -137,10 +134,24 @@ def main(unused_argv):
           break
 
       # evaluate the model on train-val
+      dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
       x_np, y_np = sess.run(dataset_iterator_test.get_next())
-      print "expected x_np_test shape starts with n; x_np shape: {}, y_np shape: {}".format(x_np.shape, y_np.shape)
       feed_dict = {x: x_np, y: y_np}
-      loss_test = sess.run([loss], feed_dict=feed_dict)
+      loss_test, pred_test = sess.run([loss, pred_mask], feed_dict=feed_dict)
+
+      # import pdb; pdb.set_trace()
+      mask_output_dir = "{}/{}/{}".format(FLAGS.test_mask_output, FLAGS.test_sequence, str(epoch))
+      if not os.path.exists(mask_output_dir):
+        os.makedirs(mask_output_dir)
+      N_, H_, W_, _ = pred_test.shape
+      # save predicted mask to somewhere
+      for i in range(N_):
+        mask_output = "{}/{:05d}.png".format(mask_output_dir, i)
+        base_image = np.zeros((H_, W_))
+        base_image[np.squeeze(pred_test[i,:,:,0]) > 0.5] = 1
+        base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
+        base_image = base_image.astype(np.uint8)
+        io.imwrite_indexed(mask_output, base_image)
 
     tf.train.Saver().save(sess=sess, save_path=FLAGS.output_path + "model.ckpt")
 
