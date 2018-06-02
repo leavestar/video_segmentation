@@ -56,6 +56,7 @@ def load_data(osvos_files, maskrcnn_files, groundtruth_files):
 
 def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger):
   all_image_valid = True
+  invalid_seqs=set()
   for index in range(len(osvos_files)):
     osvos_image, _ = davis.io.imread_indexed(osvos_files[index])
     maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_files[index])
@@ -68,6 +69,7 @@ def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger)
     if osvos_image.shape != (480, 854, 1):
       logger.error("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_files[index]))
       all_image_valid = False
+      invalid_seqs.add(osvos_files[index].split('/')[-2])
 
     if maskrcnn_image.shape != (480, 854, 1):
       logger.error("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_files[index]))
@@ -76,5 +78,8 @@ def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger)
     if groundtruth_image.shape != (480, 854, 1):
       logger.error("Invalid dimension {} from path {}".format(groundtruth_image.shape, groundtruth_files[index]))
       all_image_valid = False
+
+  if all_image_valid is False:
+    logger.error("Invalid sequence {}".format(invalid_seqs))
 
   return all_image_valid
