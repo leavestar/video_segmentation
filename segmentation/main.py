@@ -123,7 +123,7 @@ def generate_dataset(FLAGS, seqs, is_shuffle=True):
 
 def main(unused_argv):
   train_seqs, test_seqs = setup(root_path)
-  check_image_dimension(FLAGS, logger, train_seqs)
+  # check_image_dimension(FLAGS, logger, train_seqs)
 
   # construct image files array
   if FLAGS.train_mode:
