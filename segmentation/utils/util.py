@@ -42,15 +42,16 @@ def check_image_dimension(FLAGS, logger, seqs):
     groundtruth_image_path = "{}/{}/{}/".format(FLAGS.read_path, FLAGS.groundtruth_image_path, sequence)
 
     osvos_image, _ = davis.io.imread_indexed(osvos_label_path + '00000.png')
-    osvos_image = osvos_image[np.newaxis, ...]
+    osvos_image = osvos_image[..., np.newaxis]
     logger.info("osvos_image shape{}, type: {} unique {}".format(osvos_image.shape, type(osvos_image), np.unique(osvos_image)))
 
     maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_label_path + '00000.png')
-    maskrcnn_image = maskrcnn_image[np.newaxis, ...]
+    maskrcnn_image = maskrcnn_image[..., np.newaxis]
     logger.info("maskrcnn_image shape{}, unique {}".format(maskrcnn_image.shape, np.unique(maskrcnn_image)))
 
     groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_path + '00000.png')
+    groundtruth_label_image = groundtruth_label_image[..., np.newaxis]
     logger.info("groundtruth label shape{}, unique {}".format(groundtruth_label_image.shape, np.unique(groundtruth_label_image)))
 
-    groundtruth_image_image = np.concatenate((osvos_image, maskrcnn_image), axis=0)
-    logger.info("groundtruth image shape{}, unique {}".format(groundtruth_image_image.shape, np.unique(groundtruth_image_image)))
+    input_image = np.concatenate((osvos_image, maskrcnn_image), axis=2)
+    logger.info("input_image  shape{}, unique {}".format(input_image.shape, np.unique(input_image)))

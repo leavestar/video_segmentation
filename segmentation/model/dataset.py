@@ -17,11 +17,21 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
   osvos_image = osvos_image[..., np.newaxis ]
   maskrcnn_image = maskrcnn_image[..., np.newaxis]
   groundtruth_image = groundtruth_image[..., np.newaxis]
+
+  if osvos_image.shape != (480, 854, 1):
+    raise Exception("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_file))
+
+  if maskrcnn_image.shape != (480, 854, 1):
+    raise Exception("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_file))
+
+  if groundtruth_image.shape != (480, 854, 1):
+    raise Exception("Invalid dimension {} from path {}".format(groundtruth_image.shape, groundtruth_file))
   # (480, 854, 2)
   input = np.concatenate((osvos_image.astype(np.float32), maskrcnn_image.astype(np.float32)), axis=2)
   groundtruth_image = groundtruth_image.astype(np.float32)
   logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
   logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_image.shape, type(groundtruth_image), groundtruth_image.dtype))
+
   return input, groundtruth_image
 
 def load_data(osvos_files, maskrcnn_files, groundtruth_files):
