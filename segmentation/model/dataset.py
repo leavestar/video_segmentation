@@ -22,16 +22,16 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
   groundtruth_image = groundtruth_image[..., np.newaxis]
 
   if osvos_image.shape != (480, 854, 1):
-    osvos_image = imresize(osvos_image, (480, 854, 1))
     logging.warn("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
+    osvos_image = imresize(osvos_image, (480, 854, 1))
 
   if maskrcnn_image.shape != (480, 854, 1):
-    maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
     logging.warn("Invalid dimension {} from osvos path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
+    maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
 
   if groundtruth_image.shape != (480, 854, 1):
-    groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
     logging.warn("Invalid dimension {} from path {}, resize".format(groundtruth_image.shape, groundtruth_file))
+    groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
 
   # (480, 854, 2)
   input = np.concatenate((osvos_image.astype(np.float32), maskrcnn_image.astype(np.float32)), axis=2)
@@ -76,6 +76,7 @@ def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger)
         logger.debug("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_files[index]))
 
       if maskrcnn_image.shape != (480, 854, 1):
+        all_image_found = False
         logger.debug("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_files[index]))
         invalid_seqs.add(osvos_files[index].split('/')[-2])
 
