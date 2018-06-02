@@ -95,13 +95,13 @@ def setup(root_path):
   train_seqs = None
   if FLAGS.train_mode:
     train_path = os.path.join('.', 'train.yaml')
-    train_stream = file(train_path, 'r')
-    train_dict = yaml.load(train_stream)
+    with open(train_path, 'r') as train_stream:
+      train_dict = yaml.load(train_stream)
     train_seqs = train_dict['sequences']
 
   test_path = os.path.join('.','test.yaml')
-  test_stream = file(test_path, 'r')
-  test_dict = yaml.load(test_stream)
+  with open(test_path, 'r') as test_stream:
+    test_dict = yaml.load(test_stream)
   test_seqs = test_dict['sequences']
   return train_seqs, test_seqs
 
