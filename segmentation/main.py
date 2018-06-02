@@ -166,7 +166,7 @@ def main(unused_argv):
 
               # not finish yet! eval davis performance
 
-            test_n += len(test_loss_)
+            test_n += 1
             test_loss += test_loss_
 
           except tf.errors.OutOfRangeError:
