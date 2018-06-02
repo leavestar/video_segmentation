@@ -16,21 +16,21 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
   maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
   groundtruth_image, _ = davis.io.imread_indexed(groundtruth_file)
 
-  if osvos_image.shape != (480, 854):
-    osvos_image = tf.image.resize_images(images=osvos_image, size=[480, 854])
-    logging.warn("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_file))
-
-  if maskrcnn_image.shape != (480, 854):
-    maskrcnn_image = tf.image.resize_images(images=maskrcnn_image, size=[480, 854])
-    logging.warn("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_file))
-
-  if groundtruth_image.shape != (480, 854):
-    groundtruth_image = tf.image.resize_images(images=groundtruth_image, size=[480, 854])
-    logging.warn("Invalid dimension {} from path {}".format(groundtruth_image.shape, groundtruth_file))
-
   osvos_image = osvos_image[..., np.newaxis]
   maskrcnn_image = maskrcnn_image[..., np.newaxis]
   groundtruth_image = groundtruth_image[..., np.newaxis]
+
+  if osvos_image.shape != (480, 854, 1):
+    osvos_image = tf.image.resize_images(images=osvos_image, size=[480, 854])
+    logging.warn("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_file))
+
+  if maskrcnn_image.shape != (480, 854, 1):
+    maskrcnn_image = tf.image.resize_images(images=maskrcnn_image, size=[480, 854])
+    logging.warn("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_file))
+
+  if groundtruth_image.shape != (480, 854, 1):
+    groundtruth_image = tf.image.resize_images(images=groundtruth_image, size=[480, 854])
+    logging.warn("Invalid dimension {} from path {}".format(groundtruth_image.shape, groundtruth_file))
 
   # (480, 854, 2)
   input = np.concatenate((osvos_image.astype(np.float32), maskrcnn_image.astype(np.float32)), axis=2)
