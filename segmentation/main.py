@@ -70,6 +70,9 @@ FLAGS = tf.app.flags.FLAGS
 
 root_path = os.path.join(FLAGS.output_path, FLAGS.model_label)
 
+if not os.path.exists(root_path):
+  os.makedirs(root_path)
+
 file_handler = logging.FileHandler(root_path + "/log.txt")
 file_handler.setLevel(logging.INFO)
 logger = logging.getLogger('server_logger')
@@ -79,12 +82,11 @@ def setup(root_path):
   if not FLAGS.model_label:
      raise Exception("--model_label is required")
 
-  if not os.path.exists(root_path):
-    os.makedirs(root_path)
+  if not os.path.exists(root_path + "/models"):
     os.makedirs(root_path + "/models")
-    logger.info("Output path not found, create {}".format(root_path))
+    logger.info("Output path not found, create {}".format(root_path + "/models"))
   else:
-    logger.info("Output Path found {}".format(root_path))
+    logger.info("Output Path found {}".format(root_path + "/models"))
 
   with open(os.path.join(root_path, "flags.json"), 'w') as fout:
       json.dump(FLAGS.flag_values_dict(), fout)
