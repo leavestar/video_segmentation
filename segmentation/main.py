@@ -246,21 +246,10 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
 
         #  pred_test is now (N_, H_, W_, num_class), we convert it to (H_, W_)
         base_image = np.squeeze(np.argmax(pred_test[i, :, :, :], axis=-1))
-        # base_image = np.zeros((H_, W_))
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 0.5] = 1
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 1.5] = 2
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 2.5] = 3
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 3.5] = 4
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 4.5] = 5
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 5.5] = 6
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 6.5] = 7
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 7.5] = 8
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 8.5] = 9
-        # base_image[np.squeeze(pred_test[i, :, :, 0]) > 9.5] = 10
         base_image = base_image.astype(np.uint8)
         io.imwrite_indexed(mask_output, base_image)
-        if FLAGS.debug_mode:
-          import pdb; pdb.set_trace()
+        if len(np.unique(base_image)) == 1:
+          logger.info("problem on predicted base_iamge. maybe all 0 {}".format(mask_output))
 
       test_n += 1
       test_loss += test_loss_

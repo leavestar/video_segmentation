@@ -40,8 +40,8 @@ def _read_py_function_12(osvos_file, maskrcnn_file, groundtruth_label_file, grou
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -75,8 +75,8 @@ def _read_py_function_34(osvos_file, maskrcnn_file, groundtruth_label_file, grou
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
