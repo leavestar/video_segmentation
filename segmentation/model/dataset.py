@@ -8,6 +8,7 @@ slim = tf.contrib.slim
 import davis
 import logging
 import cv2
+import skimage
 from scipy.misc import imresize
 
 logging.basicConfig(level=logging.INFO)
@@ -93,7 +94,7 @@ def _read_py_function_34(osvos_file,
                          firstframe_image_file):
   input_images = []
 
-  groundtruth_image = cv2.imread(groundtruth_image_file)
+  groundtruth_image = skimage.io.imread(groundtruth_image_file)
   if groundtruth_image.shape != (480, 854, 3):
     raise Exception(
       "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
@@ -194,6 +195,8 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
     raise Exception("Not a valid model combination")
 
   logging.info("python_funtion is {}".format(python_function.__name__))
+  logging.info("cv2 version {}".format(cv2.__version__))
+  logging.info("skimage version {}".format(skimage.__version__))
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
       tf.py_func(python_function,
