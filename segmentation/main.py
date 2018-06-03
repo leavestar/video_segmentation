@@ -245,7 +245,13 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
         mask_output = "{}/{:05d}.png".format(mask_output_dir, seq_number)
 
         #  pred_test is now (N_, H_, W_, num_class), we convert it to (H_, W_)
-        base_image = np.squeeze(np.argmax(pred_test[i, :, :, :], axis=-1))
+        # upon observation, turns out pred_test usually have very large 0 prediction equally large as other prediction.
+        # to prevent constant 0 prediction, we reverse the list
+        pred_test_ = pred_test[i, :, :, ::-1]
+        base_image = np.squeeze(np.argmax(pred_test_, axis=-1))
+        base_image = -base_image + FLAGS.num_classes - 1
+        # above 3 line equlivalent to base_image = np.squeeze(np.argmax(pred_test[i, :, :, :], axis=-1))
+
         base_image = base_image.astype(np.uint8)
         io.imwrite_indexed(mask_output, base_image)
         if len(np.unique(base_image)) == 1:
