@@ -155,7 +155,7 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
     python_function = None
     raise Exception("Not a valid model combination")
 
-  logging.info("python_funtion is {}".format(python_function.func_name))
+  logging.info("python_funtion is {}".format(python_function.__name__))
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
       tf.py_func(python_function,
