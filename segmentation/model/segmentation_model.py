@@ -84,8 +84,8 @@ def optimizer_init_fn(FLAGS):
   return optimizer
 
 
-def model_dim_print(FLAGS, inputs):
-  input_shape = (FLAGS.height, FLAGS.weight, 2)
+def model_dim_print(FLAGS, channel_dim, inputs):
+  input_shape = (FLAGS.height, FLAGS.weight, channel_dim)
 
   layer_list = []
   if FLAGS.layer32:
@@ -138,6 +138,7 @@ def model_dim_print(FLAGS, inputs):
   layer_list.append(convolution_layer(FLAGS.num_classes, kernel=(1, 1), activation='sigmoid'))
 
 
+  logging.info("Input Layer shape: {}".format(inputs.get_shape()))
   output = []
   output.append(inputs)
   for index in range(len(layer_list)):

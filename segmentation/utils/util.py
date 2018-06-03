@@ -29,13 +29,17 @@ def load_image_files(FLAGS, seqs):
         osvos_label_paths.append(osvos_label_path + file)
         maskrcnn_label_paths.append(maskrcnn_label_path + file)
         groundtruth_label_paths.append(groundtruth_label_path + file)
+        groundtruth_image_paths.append(groundtruth_image_path + file.split('.')[0]+".jpg")
+        firstframe_image_paths.append(firstframe_image_path)
         logging.debug(groundtruth_label_path + file)
         logging.debug(osvos_label_path + file)
         logging.debug(maskrcnn_label_path + file)
+        logging.debug(groundtruth_image_path + file.split('.')[0]+".jpg")
+        logging.debug(firstframe_image_path)
 
   assert len(osvos_label_paths) == len(maskrcnn_label_paths)
   assert len(maskrcnn_label_paths) == len(groundtruth_label_paths)
-  return osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths
+  return osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths, groundtruth_image_paths, firstframe_image_paths
 
 
 def check_image_dimension(FLAGS, logger, seqs):

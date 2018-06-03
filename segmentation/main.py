@@ -10,20 +10,21 @@ import yaml
 import davis
 import logging
 import matplotlib.pyplot as plt
-from model.dataset import load_data, _read_py_function, dimension_validation
+from model.dataset import load_data, dimension_validation, get_channel_dim
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
 from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config
 import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "jingle.jiang"
+env = "cloud"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
+
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", True, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
-tf.app.flags.DEFINE_boolean("enable_jpg", False, "enable_jpg")
+tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
 tf.app.flags.DEFINE_boolean("enable_firstframe", False, "enable_firstframe")
 
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
@@ -91,14 +92,25 @@ def setup(root_path):
 
 
 def generate_dataset(FLAGS, seqs, is_shuffle=False):
-  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths = load_image_files(FLAGS, seqs)
+  osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths, groundtruth_image_paths, firstframe_image_paths = load_image_files(FLAGS, seqs)
   logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
 
-  if dimension_validation(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths, logger) is False:
+  if dimension_validation(
+          osvos_label_paths,
+          maskrcnn_label_paths,
+          groundtruth_label_paths,
+          groundtruth_image_paths,
+          firstframe_image_paths,
+          logger) is False:
     raise Exception("Invalid Image Found")
 
   # successfully load dataset
-  segmentation_dataset, seqs = load_data(osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths)
+  segmentation_dataset, seqs = load_data(FLAGS,
+    osvos_label_paths,
+    maskrcnn_label_paths,
+    groundtruth_label_paths,
+    groundtruth_image_paths,
+    firstframe_image_paths)
   if is_shuffle:
     segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
   segmentation_dataset = segmentation_dataset.batch(FLAGS.batch_size)
@@ -117,11 +129,11 @@ def main(unused_argv):
   segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
 
   with tf.device(FLAGS.device):
-    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 2])
+    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, get_channel_dim(FLAGS)])
     y = tf.placeholder(tf.int32, [None, FLAGS.height, FLAGS.weight])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
-    pred_mask = model_dim_print(FLAGS=FLAGS, inputs=x)
+    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=get_channel_dim(FLAGS), inputs=x)
     # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
