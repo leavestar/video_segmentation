@@ -148,12 +148,13 @@ def main(unused_argv):
             # further, FLAGS.batch_size==10
             logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
             logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
-            feed_dict = {x: x_np, y: y_np}
-            loss_np, _, = sess.run([loss, train_op], feed_dict=feed_dict)
-            toc = time.time()
             max_label = np.max(y_np)
             if max_label >= FLAGS.num_classes:
               logger.info("WRONG! {} > num_classes".format(max_label))
+              continue
+            feed_dict = {x: x_np, y: y_np}
+            loss_np, _, = sess.run([loss, train_op], feed_dict=feed_dict)
+            toc = time.time()
             logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
