@@ -130,6 +130,51 @@ def _read_py_function_12(osvos_file,
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
 
+def expand_image(osvos_image):
+  # TODO notice b/c FLAGS cannot pass in, we hard code num_classes as 10
+  # given a 480*854 image, return a 480*854*num_classes stack of 0, 1
+  num_object = 10
+  osvos_expand = np.zeros((480, 854, num_object))
+  for layer in num_object:
+    tmp = np.zeros_like(osvos_image)
+    tmp[osvos_image == layer] = 1
+    osvos_expand[:, :, layer] = tmp
+  return osvos_expand
+
+def _read_py_function_12_expand(osvos_file,
+                         maskrcnn_file,
+                         groundtruth_label_file,
+                         groundtruth_image_file,
+                         firstframe_image_file):
+  input_images = []
+
+  osvos_image, _ = davis.io.imread_indexed(osvos_file)
+  if osvos_image.shape != (480, 854):
+    raise Exception("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
+  input_images.append(expand_image(osvos_image).astype(np.float32)) # we expand osvos
+
+  maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
+  maskrcnn_image = maskrcnn_image[..., np.newaxis]
+  if maskrcnn_image.shape != (480, 854, 1):
+    logging.error("Invalid dimension {} from markrcnn path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
+    maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
+  input_images.append(maskrcnn_image.astype(np.float32))
+
+  groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_file)
+  if groundtruth_label_image.shape != (480, 854):
+    logging.warn(
+      "Invalid dimension {} from path {}, resize".format(groundtruth_label_image.shape, groundtruth_label_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    raise Exception("Invalid dimension {}".format(groundtruth_label_image.shape))
+
+  input = np.concatenate(tuple(input_images), axis=2)
+  groundtruth_label_image = expand_image(groundtruth_label_image).astype(np.int32) # we expand ground truth
+
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+                                                                                        type(groundtruth_label_image),
+                                                                                        groundtruth_label_image.dtype))
+  return input, groundtruth_label_image
 
 def _read_py_function_34(osvos_file,
                          maskrcnn_file,
