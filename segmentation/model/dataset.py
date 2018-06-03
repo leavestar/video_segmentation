@@ -14,16 +14,16 @@ from sys import version_info
 
 logging.basicConfig(level=logging.INFO)
 
-def _read_py_function_14(osvos_file,
+def _read_py_function_134(osvos_file,
                          maskrcnn_file,
                          groundtruth_label_file,
                          groundtruth_image_file,
                          firstframe_image_file):
 
-  logging.info("Type of osvos_file {}".format(type(osvos_file)))
-  logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-  logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-  logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   if version_info[0] > 2:
     osvos_file = osvos_file.decode("utf-8")
@@ -31,12 +31,12 @@ def _read_py_function_14(osvos_file,
     groundtruth_label_file = groundtruth_label_file.decode("utf-8")
     groundtruth_image_file = groundtruth_image_file.decode("utf-8")
     firstframe_image_file = firstframe_image_file.decode("utf-8")
-    logging.info("Python 3 detected, convert all bytes to string")
-    logging.info("Type of osvos_file {}".format(type(osvos_file)))
-    logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-    logging.info("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
-    logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-    logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   input_images = []
 
@@ -46,6 +46,13 @@ def _read_py_function_14(osvos_file,
     raise Exception("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
     # osvos_image = imresize(osvos_image, (480, 854, 1))
   input_images.append(osvos_image.astype(np.float32))
+
+  groundtruth_image = skimage.io.imread(groundtruth_image_file)
+  if groundtruth_image.shape != (480, 854, 3):
+    raise Exception(
+      "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
+  input_images.append(groundtruth_image.astype(np.float32))
 
   firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
   firstframe_image = firstframe_image[..., np.newaxis]
@@ -75,22 +82,22 @@ def _read_py_function_12(osvos_file,
                          groundtruth_label_file,
                          groundtruth_image_file,
                          firstframe_image_file):
-  logging.info("Type of osvos_file {}".format(type(osvos_file)))
-  logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-  logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-  logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
   if version_info[0] > 2:
     osvos_file = osvos_file.decode("utf-8")
     maskrcnn_file = maskrcnn_file.decode("utf-8")
     groundtruth_label_file = groundtruth_label_file.decode("utf-8")
     groundtruth_image_file = groundtruth_image_file.decode("utf-8")
     firstframe_image_file = firstframe_image_file.decode("utf-8")
-    logging.info("Python 3 detected, convert all bytes to string")
-    logging.info("Type of osvos_file {}".format(type(osvos_file)))
-    logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-    logging.info("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
-    logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-    logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   input_images = []
 
@@ -129,10 +136,10 @@ def _read_py_function_34(osvos_file,
                          groundtruth_label_file,
                          groundtruth_image_file,
                          firstframe_image_file):
-  logging.info("Type of osvos_file {}".format(type(osvos_file)))
-  logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-  logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-  logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   if version_info[0] > 2:
     osvos_file = osvos_file.decode("utf-8")
@@ -140,12 +147,12 @@ def _read_py_function_34(osvos_file,
     groundtruth_label_file = groundtruth_label_file.decode("utf-8")
     groundtruth_image_file = groundtruth_image_file.decode("utf-8")
     firstframe_image_file = firstframe_image_file.decode("utf-8")
-    logging.info("Python 3 detected, convert all bytes to string")
-    logging.info("Type of osvos_file {}".format(type(osvos_file)))
-    logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-    logging.info("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
-    logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-    logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   input_images = []
 
@@ -173,8 +180,8 @@ def _read_py_function_34(osvos_file,
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -185,10 +192,10 @@ def _read_py_function_1234(osvos_file,
                            groundtruth_label_file,
                            groundtruth_image_file,
                            firstframe_image_file):
-  logging.info("Type of osvos_file {}".format(type(osvos_file)))
-  logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-  logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-  logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   if version_info[0] > 2:
     osvos_file = osvos_file.decode("utf-8")
@@ -196,12 +203,12 @@ def _read_py_function_1234(osvos_file,
     groundtruth_label_file = groundtruth_label_file.decode("utf-8")
     groundtruth_image_file = groundtruth_image_file.decode("utf-8")
     firstframe_image_file = firstframe_image_file.decode("utf-8")
-    logging.info("Python 3 detected, convert all bytes to string")
-    logging.info("Type of osvos_file {}".format(type(osvos_file)))
-    logging.info("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
-    logging.info("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
-    logging.info("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
-    logging.info("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   input_images = []
   osvos_image, _ = davis.io.imread_indexed(osvos_file)
@@ -220,7 +227,7 @@ def _read_py_function_1234(osvos_file,
   input_images.append(maskrcnn_image.astype(np.float32))
 
 
-  groundtruth_image = cv2.imread(groundtruth_image_file)
+  groundtruth_image = skimage.io.imread(groundtruth_image_file)
   if groundtruth_image.shape != (480, 854, 3):
     logging.error(
       "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
@@ -244,8 +251,8 @@ def _read_py_function_1234(osvos_file,
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -263,8 +270,8 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
     python_function = _read_py_function_34
   elif  FLAGS.enable_osvos and FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
     python_function = _read_py_function_1234
-  elif FLAGS.enable_osvos and FLAGS.enable_firstframe and not FLAGS.enable_maskrcnn and not FLAGS.enable_jpg:
-    python_function = _read_py_function_14
+  elif FLAGS.enable_osvos and FLAGS.enable_firstframe and not FLAGS.enable_maskrcnn and FLAGS.enable_jpg:
+    python_function = _read_py_function_134
   else:
     python_function = None
     raise Exception("Not a valid model combination")
@@ -316,7 +323,7 @@ def dimension_validation(
       osvos_image, _ = davis.io.imread_indexed(osvos_files[index])
       maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_files[index])
       groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_files[index])
-      groundtruth_image = cv2.imread(groundtruth_image_files[index])
+      groundtruth_image = skimage.io.imread(groundtruth_image_files[index])
       firstframe_image, _ = davis.io.imread_indexed(firstframe_image_files[index])
 
       osvos_image = osvos_image[..., np.newaxis]

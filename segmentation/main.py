@@ -26,9 +26,9 @@ tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
 
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
-tf.app.flags.DEFINE_boolean("enable_maskrcnn", True, "enable_maskrcnn")
-tf.app.flags.DEFINE_boolean("enable_jpg", False, "enable_jpg")
-tf.app.flags.DEFINE_boolean("enable_firstframe", False, "enable_firstframe")
+tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
+tf.app.flags.DEFINE_boolean("enable_firstframe", True, "enable_firstframe")
 
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS2-convert", "osvos_label_path")

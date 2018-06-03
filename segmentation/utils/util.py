@@ -34,10 +34,10 @@ def load_image_files(FLAGS, seqs):
         logging.debug(groundtruth_label_path + file)
         logging.debug(osvos_label_path + file)
         logging.debug(maskrcnn_label_path + file)
-        logging.info(groundtruth_image_path + file.split('.')[0]+".jpg")
-        logging.info(firstframe_image_path)
+        logging.debug(groundtruth_image_path + file.split('.')[0]+".jpg")
+        logging.debug(firstframe_image_path)
 
-  logging.info("Validating file length")
+  logging.debug("Validating file length")
   assert len(osvos_label_paths) == len(groundtruth_label_paths)
   assert len(maskrcnn_label_paths) == len(groundtruth_label_paths)
   assert len(groundtruth_image_paths) == len(groundtruth_label_paths)
