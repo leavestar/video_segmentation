@@ -12,6 +12,7 @@ from tensorflow.python.ops import variable_scope as vs
 
 logging.basicConfig(level=logging.INFO)
 
+smoothness = 1.0
 
 def convolution_layer(filters, kernel=(3, 3), activation='relu', input_shape=None):
   if input_shape is None:
@@ -134,13 +135,20 @@ def model_dim_print(FLAGS, inputs):
                                         ))
 
   layer_list.append(resize_layer)
-  layer_list.append(convolution_layer(1, kernel=(1, 1), activation='relu'))
+  layer_list.append(convolution_layer(FLAGS.num_classes, kernel=(1, 1), activation='sigmoid'))
+
 
   output = []
   output.append(inputs)
   for index in range(len(layer_list)):
     output.append(layer_list[index](output[index]))
-    logging.debug("Layer {} shape:{}".format(index, output[index + 1].get_shape()))
+    logging.info("Layer {} shape:{}".format(index, output[index + 1].get_shape()))
 
   model = tf.keras.models.Sequential(layers=layer_list)
   return model(inputs=inputs)
+
+# Not used yet
+def dice_coefficient_loss(labels, logits):
+  y1 = tf.contrib.layers.flatten(labels)
+  y2 = tf.contrib.layers.flatten(logits)
+  return - ((2. * tf.contrib.sum(y1 * y2) + smoothness) / (tf.contrib.sum(y1) + tf.contrib.sum(y2) + smoothness))

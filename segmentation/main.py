@@ -11,38 +11,21 @@ import davis
 import logging
 import matplotlib.pyplot as plt
 from model.dataset import load_data, _read_py_function, dimension_validation
-from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print
-from utils.util import load_image_files, check_image_dimension
+from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
+from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config
 import tensorflow.contrib.eager as tfe
 
 from davis import *
 
 env = "cloud"
-# train_model = True
-
-if env == "jingle.jiang":
-
-  tf.app.flags.DEFINE_string("read_path",
-                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
-                             "read_path")
-  tf.app.flags.DEFINE_string("output_path",
-                             "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/segmentation/Results/",
-                             "output_path")
-  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
-elif env == "hyuna915":
-  tf.app.flags.DEFINE_string("read_path",
-                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/davis-2017/data/DAVIS",
-                             "read_path")
-  tf.app.flags.DEFINE_string("output_path",
-                             "/Users/hyuna915/Desktop/2018-CS231N/Final_Project/video_segmentation/segmentation/Results/",
-                             "output_path")
-  tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
-elif env == "cloud":
-  tf.app.flags.DEFINE_string("read_path", "/home/shared/video_segmentation/davis-2017/data/DAVIS", "read_path")
-  tf.app.flags.DEFINE_string("output_path", "/home/shared/video_segmentation/segmentation/Results/", "output_path")
-  tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
+path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
+tf.app.flags.DEFINE_boolean("enable_maskrcnn", True, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_jpg", False, "enable_jpg")
+tf.app.flags.DEFINE_boolean("enable_firstframe", False, "enable_firstframe")
+
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS2-convert", "osvos_label_path")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
@@ -60,6 +43,7 @@ tf.app.flags.DEFINE_integer("pool", 2, "weight")
 tf.app.flags.DEFINE_integer("batch_size", 15, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
+tf.app.flags.DEFINE_integer("num_classes", 5, "num_classes")
 
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
 tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
@@ -82,13 +66,6 @@ logger = logging.getLogger('server_logger')
 logger.addHandler(file_handler)
 
 
-def load_seq_from_yaml(train_path):
-  with open(train_path, 'r') as train_stream:
-    train_dict = yaml.load(train_stream)
-  train_seqs = train_dict['sequences']
-  return train_seqs
-
-
 def setup(root_path):
   if not FLAGS.model_label:
     raise Exception("--model_label is required, eg osvos_maskrcnn_0602")
@@ -105,10 +82,10 @@ def setup(root_path):
 
   train_seqs = None
   if FLAGS.train_mode:
-    train_seqs = load_seq_from_yaml(os.path.join('.', 'train.yaml'))
+    train_seqs = load_seq_from_yaml(os.path.join(FLAGS.config_path, FLAGS.train_seq_yaml))
 
-  train_val = load_seq_from_yaml(os.path.join('.', 'train-sample.yaml'))
-  test_seqs = load_seq_from_yaml(os.path.join('.', 'test-sample.yaml'))
+  train_val = load_seq_from_yaml(os.path.join(FLAGS.config_path, FLAGS.train_val_yaml))
+  test_seqs = load_seq_from_yaml(os.path.join(FLAGS.config_path, FLAGS.test_val_yaml))
 
   return train_seqs, train_val, test_seqs
 
@@ -141,11 +118,12 @@ def main(unused_argv):
 
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 2])
-    y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
+    y = tf.placeholder(tf.int32, [None, FLAGS.height, FLAGS.weight])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, inputs=x)
-    loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -168,7 +146,8 @@ def main(unused_argv):
             x_np, y_np = batch
             # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
             # further, FLAGS.batch_size==10
-            logging.debug("x_list type {}, len(x_list)".format(type(x_np), len(y_np)))
+            logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
+            logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             feed_dict = {x: x_np, y: y_np}
             loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
             toc = time.time()

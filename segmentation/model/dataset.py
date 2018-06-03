@@ -19,7 +19,7 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
 
   osvos_image = osvos_image[..., np.newaxis]
   maskrcnn_image = maskrcnn_image[..., np.newaxis]
-  groundtruth_image = groundtruth_image[..., np.newaxis]
+  # groundtruth_image = groundtruth_image[..., np.newaxis]
 
   if osvos_image.shape != (480, 854, 1):
     logging.warn("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
@@ -29,13 +29,14 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_file):
     logging.warn("Invalid dimension {} from osvos path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
     maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
 
-  if groundtruth_image.shape != (480, 854, 1):
+  if groundtruth_image.shape != (480, 854):
     logging.warn("Invalid dimension {} from path {}, resize".format(groundtruth_image.shape, groundtruth_file))
-    groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    raise Exception("Invalid dimension {}".format(groundtruth_image.shape))
 
   # (480, 854, 2)
   input = np.concatenate((osvos_image.astype(np.float32), maskrcnn_image.astype(np.float32)), axis=2)
-  groundtruth_image = groundtruth_image.astype(np.float32)
+  groundtruth_image = groundtruth_image.astype(np.int32)
   logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
   logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_image.shape,
                                                                                          type(groundtruth_image),
@@ -48,7 +49,7 @@ def load_data(osvos_files, maskrcnn_files, groundtruth_files):
   training_dataset = tf.data.Dataset.from_tensor_slices(file_tuple)
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_file: tuple(
-      tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.float32, tf.float32])
+      tf.py_func(_read_py_function, [osvos_file, maskrcnn_file, groundtruth_file], [tf.float32, tf.int32])
     )
   )
   sequence_list = [file.split('/')[-2] for file in osvos_files]
@@ -70,7 +71,7 @@ def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger)
 
       osvos_image = osvos_image[..., np.newaxis]
       maskrcnn_image = maskrcnn_image[..., np.newaxis]
-      groundtruth_image = groundtruth_image[..., np.newaxis]
+      # groundtruth_image = groundtruth_image[..., np.newaxis]
 
       if osvos_image.shape != (480, 854, 1):
         logger.debug("Invalid dimension {} from osvos path {}".format(osvos_image.shape, osvos_files[index]))
@@ -80,7 +81,7 @@ def dimension_validation(osvos_files, maskrcnn_files, groundtruth_files, logger)
         logger.debug("Invalid dimension {} from osvos path {}".format(maskrcnn_image.shape, maskrcnn_files[index]))
         invalid_seqs.add(osvos_files[index].split('/')[-2])
 
-      if groundtruth_image.shape != (480, 854, 1):
+      if groundtruth_image.shape != (480, 854):
         logger.debug("Invalid dimension {} from path {}".format(groundtruth_image.shape, groundtruth_files[index]))
 
     except OSError as e:
