@@ -21,6 +21,8 @@ env = "cloud"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
+tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
+
 
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", True, "enable_maskrcnn")
@@ -257,6 +259,9 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
         # base_image[np.squeeze(pred_test[i, :, :, 0]) > 9.5] = 10
         base_image = base_image.astype(np.uint8)
         io.imwrite_indexed(mask_output, base_image)
+        if FLAGS.debug_mode:
+          import pdb; pdb.set_trace()
+
       test_n += 1
       test_loss += test_loss_
     except tf.errors.OutOfRangeError:
