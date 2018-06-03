@@ -78,7 +78,6 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_files, groundtruth
     flags[2] = 1
   if FLAGS.enable_firstframe:
     flags[3] = 1
-  print flags
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
       tf.py_func(_read_py_function,
