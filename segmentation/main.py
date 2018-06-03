@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
 tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
 
-tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_osvos", False, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
 tf.app.flags.DEFINE_boolean("enable_firstframe", True, "enable_firstframe")

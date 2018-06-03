@@ -85,8 +85,8 @@ def _read_py_function_134(osvos_file,
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = load_groundtruth_label(groundtruth_label_file)
 
-  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.info("################### groundtruth_label_image shape {} dtype {}".format(groundtruth_label_image.shape,
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label_image shape {} dtype {}".format(groundtruth_label_image.shape,
                                                                                       groundtruth_label_image.dtype))
   return input, groundtruth_label_image
 
