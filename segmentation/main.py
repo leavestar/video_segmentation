@@ -149,10 +149,10 @@ def main(unused_argv):
             logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
             logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             feed_dict = {x: x_np, y: y_np}
-            loss_np, _, total_loss = sess.run([loss, train_op, total_loss], feed_dict=feed_dict)
+            loss_np, _, total_loss_ = sess.run([loss, train_op, total_loss], feed_dict=feed_dict)
             toc = time.time()
             logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
-            logger.info("total loss: {}".format(str(total_loss)))
+            logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
           except tf.errors.OutOfRangeError:
             logger.warn("End of range")
