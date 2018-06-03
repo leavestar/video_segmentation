@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_integer("pool", 2, "weight")
 tf.app.flags.DEFINE_integer("batch_size", 15, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
-tf.app.flags.DEFINE_integer("num_classes", 5, "num_classes")
+tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
 tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
@@ -123,8 +123,8 @@ def main(unused_argv):
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, inputs=x)
     # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    total_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    loss = tf.reduce_mean(total_loss)
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -149,10 +149,10 @@ def main(unused_argv):
             logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
             logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             feed_dict = {x: x_np, y: y_np}
-            loss_np, _, total_loss_ = sess.run([loss, train_op, total_loss], feed_dict=feed_dict)
+            loss_np, _, = sess.run([loss, train_op], feed_dict=feed_dict)
             toc = time.time()
             logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
-            logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
+            # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
           except tf.errors.OutOfRangeError:
             logger.warn("End of range")
