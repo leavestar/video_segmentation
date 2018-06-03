@@ -123,8 +123,8 @@ def main(unused_argv):
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, inputs=x)
     # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    loss = tf.reduce_mean(loss)
+    total_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    loss = tf.reduce_mean(total_loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -149,9 +149,10 @@ def main(unused_argv):
             logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
             logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             feed_dict = {x: x_np, y: y_np}
-            loss_np, _ = sess.run([loss, train_op], feed_dict=feed_dict)
+            loss_np, _, total_loss = sess.run([loss, train_op, total_loss], feed_dict=feed_dict)
             toc = time.time()
             logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
+            logger.info("total loss: {}".format(str(total_loss)))
             batch_num += 1
           except tf.errors.OutOfRangeError:
             logger.warn("End of range")
