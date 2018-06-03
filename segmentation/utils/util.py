@@ -80,10 +80,10 @@ def path_config(env):
     tf.app.flags.DEFINE_string("config_path",
                                "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/segmentation",
                                "config_path")
-    tf.app.flags.DEFINE_string("train_seq_yaml", "train.yaml", "train_seq_yaml")
-    tf.app.flags.DEFINE_string("test_seq_yaml", "test.yaml", "test_seq_yaml")
-    tf.app.flags.DEFINE_string("train_val_yaml", "train-sample.yaml", "train_val_yaml")
-    tf.app.flags.DEFINE_string("test_val_yaml", "test-sample.yaml", "test_val_yaml")
+    tf.app.flags.DEFINE_string("train_seq_yaml", "train-dev.yaml", "train_seq_yaml")
+    tf.app.flags.DEFINE_string("test_seq_yaml", "test-dev.yaml", "test_seq_yaml")
+    tf.app.flags.DEFINE_string("train_val_yaml", "train-dev.yaml", "train_val_yaml")
+    tf.app.flags.DEFINE_string("test_val_yaml", "test-dev.yaml", "test_val_yaml")
     tf.app.flags.DEFINE_string("device", "/cpu:0", "device")
   elif env == "hyuna915":
     tf.app.flags.DEFINE_string("read_path",
