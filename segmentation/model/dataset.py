@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file, flags):
   input_images = []
-  if flags[0]:
+  if flags[0]=='1':
     osvos_image, _ = davis.io.imread_indexed(osvos_file)
     osvos_image = osvos_image[..., np.newaxis]
     if osvos_image.shape != (480, 854, 1):
@@ -23,7 +23,7 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
       osvos_image = imresize(osvos_image, (480, 854, 1))
     input_images.append(osvos_image.astype(np.float32))
 
-  if flags[1]:
+  if flags[1]=='1':
     maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
     maskrcnn_image = maskrcnn_image[..., np.newaxis]
 
@@ -32,7 +32,7 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
       maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
     input_images.append(maskrcnn_image.astype(np.float32))
 
-  if flags[2]:
+  if flags[2]=='1':
     groundtruth_image = cv2.imread(groundtruth_image_file)
     if groundtruth_image.shape != (480, 854, 3):
       logging.error(
@@ -40,7 +40,7 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
       groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
     input_images.append(groundtruth_image.astype(np.float32))
 
-  if flags[3]:
+  if flags[3]=='1':
     firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
     firstframe_image = firstframe_image[..., np.newaxis]
     if firstframe_image.shape != (480, 854, 1):
@@ -59,8 +59,8 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
   # (480, 854, 2)
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -69,19 +69,20 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
 def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_files, groundtruth_image_paths, firstframe_image_paths):
   file_tuple = (osvos_files, maskrcnn_files, groundtruth_files, groundtruth_image_paths, firstframe_image_paths)
   training_dataset = tf.data.Dataset.from_tensor_slices(file_tuple)
-  flags=[0,0,0,0]
+  flags=['0','0','0','0']
   if FLAGS.enable_osvos:
-    flags[0] = 1
+    flags[0] = '1'
   if FLAGS.enable_maskrcnn:
-    flags[1] = 1
+    flags[1] = '1'
   if FLAGS.enable_jpg:
-    flags[2] = 1
+    flags[2] = '1'
   if FLAGS.enable_firstframe:
-    flags[3] = 1
+    flags[3] = '1'
+  flag_str = "".join(flags)
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
       tf.py_func(_read_py_function,
-                 [osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file, tf.convert_to_tensor(flags)],
+                 [osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file, flag_str],
                  [tf.float32, tf.int32])
     )
   )

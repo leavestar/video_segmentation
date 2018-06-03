@@ -23,8 +23,8 @@ path_config(env)
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
-tf.app.flags.DEFINE_boolean("enable_maskrcnn", True, "enable_maskrcnn")
-tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
+tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_jpg", False, "enable_jpg")
 tf.app.flags.DEFINE_boolean("enable_firstframe", False, "enable_firstframe")
 
 tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_label_path")
