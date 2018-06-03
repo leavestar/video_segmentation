@@ -13,41 +13,23 @@ from scipy.misc import imresize
 logging.basicConfig(level=logging.INFO)
 
 
-def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file, flags):
+def _read_py_function_12(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file,
+                         firstframe_image_file):
   input_images = []
-  if flags[0]=='1':
-    osvos_image, _ = davis.io.imread_indexed(osvos_file)
-    osvos_image = osvos_image[..., np.newaxis]
-    if osvos_image.shape != (480, 854, 1):
-      logging.warn("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
-      osvos_image = imresize(osvos_image, (480, 854, 1))
-    input_images.append(osvos_image.astype(np.float32))
 
-  if flags[1]=='1':
-    maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
-    maskrcnn_image = maskrcnn_image[..., np.newaxis]
+  osvos_image, _ = davis.io.imread_indexed(osvos_file)
+  osvos_image = osvos_image[..., np.newaxis]
+  if osvos_image.shape != (480, 854, 1):
+    logging.warn("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
+    osvos_image = imresize(osvos_image, (480, 854, 1))
+  input_images.append(osvos_image.astype(np.float32))
 
-    if maskrcnn_image.shape != (480, 854, 1):
-      logging.error("Invalid dimension {} from markrcnn path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
-      maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
-    input_images.append(maskrcnn_image.astype(np.float32))
-
-  if flags[2]=='1':
-    groundtruth_image = cv2.imread(groundtruth_image_file)
-    if groundtruth_image.shape != (480, 854, 3):
-      logging.error(
-        "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
-      groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
-    input_images.append(groundtruth_image.astype(np.float32))
-
-  if flags[3]=='1':
-    firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
-    firstframe_image = firstframe_image[..., np.newaxis]
-    if firstframe_image.shape != (480, 854, 1):
-      logging.error(
-        "Invalid dimension {} from firstframe path {}, resize".format(firstframe_image.shape, firstframe_image_file))
-      firstframe_image = imresize(firstframe_image, (480, 854, 1))
-    input_images.append(firstframe_image.astype(np.float32))
+  maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
+  maskrcnn_image = maskrcnn_image[..., np.newaxis]
+  if maskrcnn_image.shape != (480, 854, 1):
+    logging.error("Invalid dimension {} from markrcnn path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
+    maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
+  input_images.append(maskrcnn_image.astype(np.float32))
 
   groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_file)
   if groundtruth_label_image.shape != (480, 854):
@@ -56,7 +38,90 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
     # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
     raise Exception("Invalid dimension {}".format(groundtruth_label_image.shape))
 
-  # (480, 854, 2)
+  input = np.concatenate(tuple(input_images), axis=2)
+  groundtruth_label_image = groundtruth_label_image.astype(np.int32)
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+                                                                                        type(groundtruth_label_image),
+                                                                                        groundtruth_label_image.dtype))
+  return input, groundtruth_label_image
+
+
+def _read_py_function_34(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file,
+                          firstframe_image_file):
+  input_images = []
+
+  groundtruth_image = cv2.imread(groundtruth_image_file)
+  if groundtruth_image.shape != (480, 854, 3):
+    logging.error(
+      "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
+    groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
+  input_images.append(groundtruth_image.astype(np.float32))
+
+  firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
+  firstframe_image = firstframe_image[..., np.newaxis]
+  if firstframe_image.shape != (480, 854, 1):
+    logging.error(
+      "Invalid dimension {} from firstframe path {}, resize".format(firstframe_image.shape, firstframe_image_file))
+    firstframe_image = imresize(firstframe_image, (480, 854, 1))
+  input_images.append(firstframe_image.astype(np.float32))
+
+  groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_file)
+  if groundtruth_label_image.shape != (480, 854):
+    logging.warn(
+      "Invalid dimension {} from path {}, resize".format(groundtruth_label_image.shape, groundtruth_label_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    raise Exception("Invalid dimension {}".format(groundtruth_label_image.shape))
+
+  input = np.concatenate(tuple(input_images), axis=2)
+  groundtruth_label_image = groundtruth_label_image.astype(np.int32)
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+                                                                                        type(groundtruth_label_image),
+                                                                                        groundtruth_label_image.dtype))
+  return input, groundtruth_label_image
+
+
+def _read_py_function_1234(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file,
+                           firstframe_image_file):
+  input_images = []
+  osvos_image, _ = davis.io.imread_indexed(osvos_file)
+  osvos_image = osvos_image[..., np.newaxis]
+  if osvos_image.shape != (480, 854, 1):
+    logging.warn("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
+    osvos_image = imresize(osvos_image, (480, 854, 1))
+  input_images.append(osvos_image.astype(np.float32))
+
+  maskrcnn_image, _ = davis.io.imread_indexed(maskrcnn_file)
+  maskrcnn_image = maskrcnn_image[..., np.newaxis]
+
+  if maskrcnn_image.shape != (480, 854, 1):
+    logging.error("Invalid dimension {} from markrcnn path {}, resize".format(maskrcnn_image.shape, maskrcnn_file))
+    maskrcnn_image = imresize(maskrcnn_image, (480, 854, 1))
+  input_images.append(maskrcnn_image.astype(np.float32))
+
+  groundtruth_image = cv2.imread(groundtruth_image_file)
+  if groundtruth_image.shape != (480, 854, 3):
+    logging.error(
+      "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
+    groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
+  input_images.append(groundtruth_image.astype(np.float32))
+
+  firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
+  firstframe_image = firstframe_image[..., np.newaxis]
+  if firstframe_image.shape != (480, 854, 1):
+    logging.error(
+      "Invalid dimension {} from firstframe path {}, resize".format(firstframe_image.shape, firstframe_image_file))
+    firstframe_image = imresize(firstframe_image, (480, 854, 1))
+  input_images.append(firstframe_image.astype(np.float32))
+
+  groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_file)
+  if groundtruth_label_image.shape != (480, 854):
+    logging.warn(
+      "Invalid dimension {} from path {}, resize".format(groundtruth_label_image.shape, groundtruth_label_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    raise Exception("Invalid dimension {}".format(groundtruth_label_image.shape))
+
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
   logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
@@ -69,20 +134,21 @@ def _read_py_function(osvos_file, maskrcnn_file, groundtruth_label_file, groundt
 def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_files, groundtruth_image_paths, firstframe_image_paths):
   file_tuple = (osvos_files, maskrcnn_files, groundtruth_files, groundtruth_image_paths, firstframe_image_paths)
   training_dataset = tf.data.Dataset.from_tensor_slices(file_tuple)
-  flags=['0','0','0','0']
-  if FLAGS.enable_osvos:
-    flags[0] = '1'
-  if FLAGS.enable_maskrcnn:
-    flags[1] = '1'
-  if FLAGS.enable_jpg:
-    flags[2] = '1'
-  if FLAGS.enable_firstframe:
-    flags[3] = '1'
-  flag_str = "".join(flags)
+  python_function = None
+
+  if FLAGS.enable_osvos and FLAGS.enable_maskrcnn and not FLAGS.enable_jpg and not FLAGS.enable_firstframe:
+    python_function = _read_py_function_12
+  elif not FLAGS.enable_osvos and not FLAGS.enable_maskrcnn and  FLAGS.enable_jpg and  FLAGS.enable_firstframe:
+    python_function = _read_py_function_34
+  elif  FLAGS.enable_osvos and FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
+    python_function = _read_py_function_1234
+  else:
+    python_function = None
+
   training_dataset = training_dataset.map(
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
-      tf.py_func(_read_py_function,
-                 [osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file, flag_str],
+      tf.py_func(python_function,
+                 [osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file],
                  [tf.float32, tf.int32])
     )
   )
@@ -159,9 +225,10 @@ def dimension_validation(
 
       if np.max(groundtruth_label_image) >= 10:
         logger.debug(
-          " wrong # of numclasses {} from path {}".format(np.max(groundtruth_label_image), groundtruth_label_files[index]))
+          " wrong # of numclasses {} from path {}".format(np.max(groundtruth_label_image),
+                                                          groundtruth_label_files[index]))
         raise Exception("wrong numclasses {} from label path {}".format(np.max(groundtruth_label_image),
-                                                                         groundtruth_label_files[index]))
+                                                                        groundtruth_label_files[index]))
 
 
     except Exception as e:
