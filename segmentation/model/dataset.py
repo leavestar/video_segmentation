@@ -157,6 +157,13 @@ def dimension_validation(
         raise Exception(
           "Invalid dimension {} from label path {}".format(firstframe_image.shape, firstframe_image_files[index]))
 
+      if np.max(groundtruth_label_image) >= 10:
+        logger.debug(
+          " wrong # of numclasses {} from path {}".format(np.max(groundtruth_label_image), groundtruth_label_files[index]))
+        raise Exception("wrong numclasses {} from label path {}".format(np.max(groundtruth_label_image),
+                                                                         groundtruth_label_files[index]))
+
+
     except Exception as e:
       logger.error(e)
       all_image_found = False
