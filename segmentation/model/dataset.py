@@ -82,8 +82,8 @@ def _read_py_function_134_expand(osvos_file,
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = expand_image(groundtruth_label_image).astype(np.float32)  # we expand ground truth
-  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.info("################### groundtruth_label_image shape {} dtype {}".format(groundtruth_label_image.shape,
+  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.debug("################### groundtruth_label_image shape {} dtype {}".format(groundtruth_label_image.shape,
                                                                                       groundtruth_label_image.dtype))
   return input, groundtruth_label_image
 
