@@ -6,6 +6,7 @@ import numpy as np
 import logging
 import tensorflow as tf
 import davis
+from sys import version_info
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -120,3 +121,23 @@ def path_config(env):
     tf.app.flags.DEFINE_string("test_val_yaml", "test-sample.yaml", "test_val_yaml")
     tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
+def convert_type(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file):
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+
+  if version_info[0] > 2:
+    osvos_file = osvos_file.decode("utf-8")
+    maskrcnn_file = maskrcnn_file.decode("utf-8")
+    groundtruth_label_file = groundtruth_label_file.decode("utf-8")
+    groundtruth_image_file = groundtruth_image_file.decode("utf-8")
+    firstframe_image_file = firstframe_image_file.decode("utf-8")
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+
+  return  osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file
