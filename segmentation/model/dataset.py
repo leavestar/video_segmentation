@@ -14,6 +14,80 @@ from sys import version_info
 
 logging.basicConfig(level=logging.INFO)
 
+
+def expand_image(osvos_image):
+  # TODO notice b/c FLAGS cannot pass in, we hard code num_classes as 10
+  # given a 480*854 image, return a 480*854*num_classes stack of 0, 1
+  num_object = 10
+  osvos_expand = np.zeros((480, 854, num_object))
+  for layer in range(num_object):
+    tmp = np.zeros_like(osvos_image)
+    tmp[osvos_image == layer] = 1
+    osvos_expand[:, :, layer] = tmp
+  return osvos_expand
+
+
+def _read_py_function_134_expand(osvos_file,
+                         maskrcnn_file,
+                         groundtruth_label_file,
+                         groundtruth_image_file,
+                         firstframe_image_file):
+
+  logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+  logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+  logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+  logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+
+  if version_info[0] > 2:
+    osvos_file = osvos_file.decode("utf-8")
+    maskrcnn_file = maskrcnn_file.decode("utf-8")
+    groundtruth_label_file = groundtruth_label_file.decode("utf-8")
+    groundtruth_image_file = groundtruth_image_file.decode("utf-8")
+    firstframe_image_file = firstframe_image_file.decode("utf-8")
+    logging.debug("Python 3 detected, convert all bytes to string")
+    logging.debug("Type of osvos_file {}".format(type(osvos_file)))
+    logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
+    logging.debug("Type of groundtruth_label_file {}".format(type(groundtruth_label_file)))
+    logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
+    logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
+
+  input_images = []
+
+  osvos_image, _ = davis.io.imread_indexed(osvos_file)
+  if osvos_image.shape != (480, 854):
+    raise Exception("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
+    # osvos_image = imresize(osvos_image, (480, 854, 1))
+  input_images.append(expand_image(osvos_image).astype(np.float32))  # we expand osvos
+
+  groundtruth_image = skimage.io.imread(groundtruth_image_file)
+  if groundtruth_image.shape != (480, 854, 3):
+    raise Exception(
+      "Invalid dimension {} from groundtruth path {}, resize".format(groundtruth_image.shape, groundtruth_image_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 3))
+  input_images.append(groundtruth_image.astype(np.float32))
+
+  firstframe_image, _ = davis.io.imread_indexed(firstframe_image_file)
+  if firstframe_image.shape != (480, 854):
+    raise Exception(
+      "Invalid dimension {} from firstframe path {}, resize".format(firstframe_image.shape, firstframe_image_file))
+
+  input_images.append(expand_image(firstframe_image).astype(np.float32))  # we expand osvos
+
+  groundtruth_label_image, _ = davis.io.imread_indexed(groundtruth_label_file)
+  if groundtruth_label_image.shape != (480, 854):
+    logging.warn(
+      "Invalid dimension {} from path {}, resize".format(groundtruth_label_image.shape, groundtruth_label_file))
+    # groundtruth_image = imresize(groundtruth_image, (480, 854, 1))
+    raise Exception("Invalid dimension {}".format(groundtruth_label_image.shape))
+
+  input = np.concatenate(tuple(input_images), axis=2)
+  groundtruth_label_image = expand_image(groundtruth_label_image).astype(np.float32)  # we expand ground truth
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label_image shape {} dtype {}".format(groundtruth_label_image.shape,
+                                                                                      groundtruth_label_image.dtype))
+  return input, groundtruth_label_image
+
+
 def _read_py_function_134(osvos_file,
                          maskrcnn_file,
                          groundtruth_label_file,
@@ -130,16 +204,6 @@ def _read_py_function_12(osvos_file,
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
 
-def expand_image(osvos_image):
-  # TODO notice b/c FLAGS cannot pass in, we hard code num_classes as 10
-  # given a 480*854 image, return a 480*854*num_classes stack of 0, 1
-  num_object = 10
-  osvos_expand = np.zeros((480, 854, num_object))
-  for layer in range(num_object):
-    tmp = np.zeros_like(osvos_image)
-    tmp[osvos_image == layer] = 1
-    osvos_expand[:, :, layer] = tmp
-  return osvos_expand
 
 def _read_py_function_12_expand(osvos_file,
                          maskrcnn_file,
@@ -313,13 +377,13 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
   python_function = None
 
   if FLAGS.enable_osvos and FLAGS.enable_maskrcnn and not FLAGS.enable_jpg and not FLAGS.enable_firstframe:
-    python_function = _read_py_function_12_expand
+    python_function = _read_py_function_12
   elif not FLAGS.enable_osvos and not FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
     python_function = _read_py_function_34
   elif  FLAGS.enable_osvos and FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
     python_function = _read_py_function_1234
   elif FLAGS.enable_osvos and FLAGS.enable_firstframe and not FLAGS.enable_maskrcnn and FLAGS.enable_jpg:
-    python_function = _read_py_function_134
+    python_function = _read_py_function_134_expand
   else:
     python_function = None
     raise Exception("Not a valid model combination")
@@ -331,7 +395,7 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
     lambda osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file: tuple(
       tf.py_func(python_function,
                  [osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file],
-                 [tf.float32, tf.int32])
+                 [tf.float32, tf.float32])
     )
   )
   sequence_list = [file.split('/')[-2] for file in osvos_files]
@@ -347,11 +411,11 @@ def get_channel_dim(FLAGS):
   if (FLAGS.enable_maskrcnn):
     dim += 1
   if (FLAGS.enable_osvos):
-    dim += 1
+    dim += 10
   if (FLAGS.enable_jpg):
     dim += 3
   if (FLAGS.enable_firstframe):
-    dim += 1
+    dim += 10
   return dim
 
 

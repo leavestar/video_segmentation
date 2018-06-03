@@ -133,12 +133,12 @@ def main(unused_argv):
 
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, get_channel_dim(FLAGS)])
-    y = tf.placeholder(tf.int32, [None, FLAGS.height, FLAGS.weight])
+    y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, FLAGS.num_classes])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=get_channel_dim(FLAGS), inputs=x)
-    # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
