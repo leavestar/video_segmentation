@@ -22,6 +22,7 @@ path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
+tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
 
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
@@ -181,9 +182,12 @@ def main(unused_argv):
             os.makedirs(os.path.join(root_path, "models/tmp/epoch_{}/model.ckpt".format(str(epoch))))
           tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
-          # evaluate the model on train-val
+
+      # evaluate the model on train-val
       if epoch % FLAGS.eval_every_n_epochs == 0:
         for target in ["train-val", "test"]:
+          if FLAGS.skip_test_mode and target == "test":
+            continue
           seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
           if target == "train-val":
             seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
@@ -204,7 +208,7 @@ def main(unused_argv):
             "mean J: {}, mean F: {}, "
             "DETAILS: {}; "
             "takes {} seconds"
-              .format(target, epoch, test_loss, str(davis_f_mean), str(davis_j_mean), detailed_loss, str(time_taken)))
+              .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
