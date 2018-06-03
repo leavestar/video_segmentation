@@ -124,8 +124,8 @@ def _read_py_function_12(osvos_file,
 
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = groundtruth_label_image.astype(np.int32)
-  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -135,7 +135,7 @@ def expand_image(osvos_image):
   # given a 480*854 image, return a 480*854*num_classes stack of 0, 1
   num_object = 10
   osvos_expand = np.zeros((480, 854, num_object))
-  for layer in num_object:
+  for layer in range(num_object):
     tmp = np.zeros_like(osvos_image)
     tmp[osvos_image == layer] = 1
     osvos_expand[:, :, layer] = tmp
@@ -149,6 +149,9 @@ def _read_py_function_12_expand(osvos_file,
   input_images = []
 
   osvos_image, _ = davis.io.imread_indexed(osvos_file)
+  # logging.info("############# davis imread results {}, {}".format(type(osvos_image), osvos_image))
+  # import pdb; pdb.set_trace()
+
   if osvos_image.shape != (480, 854):
     raise Exception("Invalid dimension {} from osvos path {}, resize".format(osvos_image.shape, osvos_file))
   input_images.append(expand_image(osvos_image).astype(np.float32)) # we expand osvos
@@ -170,8 +173,8 @@ def _read_py_function_12_expand(osvos_file,
   input = np.concatenate(tuple(input_images), axis=2)
   groundtruth_label_image = expand_image(groundtruth_label_image).astype(np.int32) # we expand ground truth
 
-  logging.debug("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
-  logging.debug("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
+  logging.info("################### input shape {} type {} dtype {}".format(input.shape, type(input), input.dtype))
+  logging.info("################### groundtruth_label shape {} type {} dtype {}".format(groundtruth_label_image.shape,
                                                                                         type(groundtruth_label_image),
                                                                                         groundtruth_label_image.dtype))
   return input, groundtruth_label_image
@@ -310,7 +313,7 @@ def load_data(FLAGS, osvos_files, maskrcnn_files, groundtruth_label_files, groun
   python_function = None
 
   if FLAGS.enable_osvos and FLAGS.enable_maskrcnn and not FLAGS.enable_jpg and not FLAGS.enable_firstframe:
-    python_function = _read_py_function_12
+    python_function = _read_py_function_12_expand
   elif not FLAGS.enable_osvos and not FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
     python_function = _read_py_function_34
   elif  FLAGS.enable_osvos and FLAGS.enable_maskrcnn and FLAGS.enable_jpg and FLAGS.enable_firstframe:
