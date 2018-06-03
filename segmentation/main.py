@@ -250,6 +250,8 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
         io.imwrite_indexed(mask_output, base_image)
         if len(np.unique(base_image)) == 1:
           logger.info("problem on predicted base_iamge. maybe all 0 {}".format(mask_output))
+          if FLAGS.debug_mode:
+            import pdb; pdb.set_trace()
 
       test_n += 1
       test_loss += test_loss_
