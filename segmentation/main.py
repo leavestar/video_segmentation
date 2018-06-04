@@ -161,8 +161,8 @@ def main(unused_argv):
             _, _, _, x_np, y_np = batch
             # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
             # further, FLAGS.batch_size==10
-            logger.info("x_np type {}, shape {}".format(type(x_np), x_np.shape))
-            logger.info("y_np type {}, shape {}".format(type(y_np), y_np.shape))
+            logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
+            logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             max_label = np.max(y_np)
             if max_label >= FLAGS.num_classes:
               logger.info("WRONG! {} > num_classes".format(max_label))
