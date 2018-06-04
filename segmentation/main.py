@@ -137,9 +137,9 @@ def main(unused_argv):
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=5, inputs=x)
-    # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
-    loss = dice_coefficient_loss(labels=y, logits=pred_mask)
+    dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -169,9 +169,9 @@ def main(unused_argv):
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
             feed_dict = {x: x_np, y: y_np}
-            loss_np, _, = sess.run([loss, train_op], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, = sess.run([loss, dice_loss, train_op], feed_dict=feed_dict)
             toc = time.time()
-            logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
+            logger.info("Batch: %i Train Loss: %.4f, dice loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, dice_loss_, toc - tic))
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
             # import pdb; pdb.set_trace()
