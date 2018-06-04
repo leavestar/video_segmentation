@@ -152,4 +152,4 @@ def model_dim_print(FLAGS, channel_dim, inputs):
 def dice_coefficient_loss(labels, logits):
   y1 = tf.contrib.layers.flatten(labels)
   y2 = tf.contrib.layers.flatten(logits)
-  return - ((2. * tf.reduce_sum(y1 * y2) + smoothness) / (tf.reduce_sum(y1) + tf.reduce_sum(y2) + smoothness))
+  return (tf.reduce_sum(y1) + tf.reduce_sum(y2) + smoothness) / (2. * tf.reduce_sum(y1 * y2) + smoothness)

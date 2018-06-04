@@ -174,6 +174,7 @@ def main(unused_argv):
             logger.info("Batch: %i Train Loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, toc - tic))
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
+            # import pdb; pdb.set_trace()
           except tf.errors.OutOfRangeError:
             logger.warn("End of range")
             break
