@@ -145,6 +145,10 @@ def main(unused_argv):
     weight = (480*854*FLAGS.batch_size - tf.reduce_sum(y)) / tf.reduce_sum(y)
     loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
     dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
+
+    # osvos_dice loss
+    dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.squeeze(x[:, :, :, 0]))
+
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -165,12 +169,6 @@ def main(unused_argv):
             tic = time.time()
             batch = sess.run(dataset_iterator.get_next())
             seq_name_, image_number_, object_number_, x_np, y_np = batch
-            if FLAGS.debug_mode and epoch >= 2:
-              davis.io.imwrite_indexed('./osvos.png', x_np[0,:,:,0].astype('uint8'))
-              davis.io.imwrite_indexed('./firstframe.png', x_np[0,:,:,4].astype('uint8'))
-              skimage.io.imsave('./gt_image.jpg', x_np[0, :, :, 1:4])
-              davis.io.imwrite_indexed('./gt_label.png', y_np[0, :, :, 0].astype('uint8'))
-              # logging.info("saved for seq_name {}, image_#: {}, object_#: {}".format())
 
             # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
             # further, FLAGS.batch_size==10
@@ -181,15 +179,30 @@ def main(unused_argv):
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
             feed_dict = {x: x_np, y: y_np}
-            loss_np, dice_loss_, _, pred_mask_, weight_= sess.run([loss, dice_loss, train_op, pred_mask, weight], feed_dict=feed_dict)
-            if FLAGS.debug_mode and epoch >= 2:
-              pdb.set_trace()
-              davis.io.imwrite_indexed('./predict.png', (2*pred_mask_[0, :, :, 0]).astype('uint8'))
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_ = \
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos], feed_dict=feed_dict)
+            if FLAGS.debug_mode:
+              for idx in range(len(seq_name_)):
+                if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and object_number_[idx] == 1) or \
+                    (seq_name_[idx].decode("utf-8") == "swing" and image_number_[idx].decode("utf-8") == "00023.png" and object_number_[idx] == 1) or \
+                    (seq_name_[idx].decode("utf-8") == "surf" and image_number_[idx].decode("utf-8") == "00008.png" ):
+                  # we save
+                  seq_name__ = seq_name_[idx].decode("utf-8")
+                  image_number__ = image_number_[idx].decode("utf-8")
+                  obj_number = str(object_number_[idx])
+                  savedir = "./visualize/{}/{}/obj_{}".format(seq_name__, image_number__, obj_number)
+                  if not os.path.exists(savedir):
+                    os.makedirs(savedir)
+                  davis.io.imwrite_indexed(os.path.join(savedir, 'osvos_epoch{}.png'.format(str(epoch))), x_np[idx,:,:,0].astype('uint8'))
+                  davis.io.imwrite_indexed(os.path.join(savedir, 'firstframe.png'), x_np[idx,:,:,4].astype('uint8'))
+                  skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, 1:4])
+                  davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch{}.png'.format(str(epoch))), y_np[idx, :, :, 0].astype('uint8'))
+                  davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))), (2*pred_mask_[idx, :, :, 0]).astype('uint8'))
 
             toc = time.time()
             logger.info(
-              "Batch: %i Train Loss: %.4f, dice loss: %.4f, pos_weight: %.4f takes %.2f seconds" %
-              (batch_num, loss_np, dice_loss_, weight_, toc - tic)
+              "Batch: %i Train Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
+              (batch_num, loss_np, dice_loss_, dice_loss_osvos_, weight_, toc - tic)
             )
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
