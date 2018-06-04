@@ -10,9 +10,10 @@ import yaml
 import davis
 import logging
 import matplotlib.pyplot as plt
-from model.dataset import load_data, load_data2, dimension_validation, get_channel_dim
+from model.dataset import load_data, dimension_validation, get_channel_dim
+from model.dataset_gen import load_data2
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
-from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config, write_summary
+from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config, write_summary, print_image, get_channel_dimension2
 import tensorflow.contrib.eager as tfe
 import pdb
 import skimage
@@ -135,22 +136,26 @@ def main(unused_argv):
   global_step = tf.Variable(0, name="global_step", trainable=False)
 
   with tf.device(FLAGS.device):
-    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 5])
+    channel_dim = get_channel_dimension2(FLAGS)
+    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, channel_dim])
     y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
-    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=5, inputs=x)
+    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
     # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
 
-    weight = (480*854*FLAGS.batch_size - tf.reduce_sum(y)) / tf.reduce_sum(y)
+    weight = (FLAGS.height * FLAGS.weight * FLAGS.batch_size - tf.reduce_sum(y)) / tf.reduce_sum(y)
     loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
     tf.summary.histogram('loss_histogram', loss)
 
     dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
 
     # osvos_dice loss
-    dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.reshape(x[:, :, :, 0], [-1, FLAGS.height, FLAGS.weight]))
+    if FLAGS.enable_osvos:
+      dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.reshape(x[:, :, :, 0], [-1, FLAGS.height, FLAGS.weight]))
+    else:
+      dice_loss_osvos = tf.constant(-1.0)
 
     loss = tf.reduce_mean(loss)
 
@@ -194,22 +199,7 @@ def main(unused_argv):
             loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
             if FLAGS.debug_mode:
-              for idx in range(len(seq_name_)):
-                if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and object_number_[idx] == 1) or \
-                    (seq_name_[idx].decode("utf-8") == "swing" and image_number_[idx].decode("utf-8") == "00023.png" and object_number_[idx] == 1) or \
-                    (seq_name_[idx].decode("utf-8") == "surf" and image_number_[idx].decode("utf-8") == "00008.png" ):
-                  # we save
-                  seq_name__ = seq_name_[idx].decode("utf-8")
-                  image_number__ = image_number_[idx].decode("utf-8")
-                  obj_number = str(object_number_[idx])
-                  savedir = "./visualize/{}/{}/obj_{}".format(seq_name__, image_number__, obj_number)
-                  if not os.path.exists(savedir):
-                    os.makedirs(savedir)
-                  davis.io.imwrite_indexed(os.path.join(savedir, 'osvos_epoch{}.png'.format(str(epoch))), x_np[idx,:,:,0].astype('uint8'))
-                  davis.io.imwrite_indexed(os.path.join(savedir, 'firstframe.png'), x_np[idx,:,:,4].astype('uint8'))
-                  skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, 1:4])
-                  davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch{}.png'.format(str(epoch))), y_np[idx, :, :, 0].astype('uint8'))
-                  davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))), (2*pred_mask_[idx, :, :, 0]).astype('uint8'))
+              print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_)
 
             toc = time.time()
 

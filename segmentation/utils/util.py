@@ -6,9 +6,47 @@ import numpy as np
 import logging
 import tensorflow as tf
 import davis
+import skimage
 from sys import version_info
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def get_channel_dimension2(FLAGS):
+  dim = 0
+  if (FLAGS.enable_osvos):
+    dim += 1
+  if (FLAGS.enable_maskrcnn):
+    dim += 1
+  if (FLAGS.enable_jpg):
+    dim += 3
+  if (FLAGS.enable_firstframe):
+    dim += 1
+  return dim
+
+
+def get_osvos_layer(FLAGS):
+  return 0
+
+
+def get_jpg_layer(FLAGS):
+  dim = 0
+  if FLAGS.enable_osvos:
+    dim += 1
+  if FLAGS.enable_maskrcnn:
+    dim += 1
+  return range(dim, dim + 3)
+
+
+def get_firstframe_layer(FLAGS):
+  dim = 0
+  if FLAGS.enable_osvos:
+    dim += 1
+  if FLAGS.enable_maskrcnn:
+    dim += 1
+  if FLAGS.enable_jpg:
+    dim += 3
+  return dim
 
 
 def load_image_files(FLAGS, seqs):
@@ -30,12 +68,12 @@ def load_image_files(FLAGS, seqs):
         osvos_label_paths.append(osvos_label_path + file)
         maskrcnn_label_paths.append(maskrcnn_label_path + file)
         groundtruth_label_paths.append(groundtruth_label_path + file)
-        groundtruth_image_paths.append(groundtruth_image_path + file.split('.')[0]+".jpg")
+        groundtruth_image_paths.append(groundtruth_image_path + file.split('.')[0] + ".jpg")
         firstframe_image_paths.append(firstframe_image_path)
         logging.debug(groundtruth_label_path + file)
         logging.debug(osvos_label_path + file)
         logging.debug(maskrcnn_label_path + file)
-        logging.debug(groundtruth_image_path + file.split('.')[0]+".jpg")
+        logging.debug(groundtruth_image_path + file.split('.')[0] + ".jpg")
         logging.debug(firstframe_image_path)
 
   logging.debug("Validating file length")
@@ -76,6 +114,7 @@ def load_seq_from_yaml(train_path):
     train_dict = yaml.load(train_stream)
   train_seqs = train_dict['sequences']
   return train_seqs
+
 
 def path_config(env):
   if env == "jj":
@@ -121,6 +160,7 @@ def path_config(env):
     tf.app.flags.DEFINE_string("test_val_yaml", "test-sample.yaml", "test_val_yaml")
     tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
+
 def convert_type(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file):
   logging.debug("Type of osvos_file {}".format(type(osvos_file)))
   logging.debug("Type of maskrcnn_file {}".format(type(maskrcnn_file)))
@@ -140,10 +180,46 @@ def convert_type(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_
     logging.debug("Type of groundtruth_image_file {}".format(type(groundtruth_image_file)))
     logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
-  return  osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file
+  return osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file
 
 
 def write_summary(value, tag, summary_writer, global_step):
   summary = tf.Summary()
   summary.value.add(tag=tag, simple_value=value)
   summary_writer.add_summary(summary, global_step)
+
+
+def print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_, epoch):
+  for idx in range(len(seq_name_)):
+    if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and
+        object_number_[idx] == 1) or \
+            (seq_name_[idx].decode("utf-8") == "swing" and image_number_[idx].decode("utf-8") == "00023.png" and
+             object_number_[idx] == 1) or \
+            (seq_name_[idx].decode("utf-8") == "surf" and image_number_[idx].decode("utf-8") == "00008.png"):
+      # we save
+      seq_name__ = seq_name_[idx].decode("utf-8")
+      image_number__ = image_number_[idx].decode("utf-8")
+      obj_number = str(object_number_[idx])
+      savedir = "./visualize/{}/{}/obj_{}".format(seq_name__, image_number__, obj_number)
+      if not os.path.exists(savedir):
+        os.makedirs(savedir)
+
+      if FLAGS.enable_osvos:
+        osvos_layer = get_osvos_layer(FLAGS)
+        davis.io.imwrite_indexed(os.path.join(savedir, 'osvos_epoch{}.png'.format(str(epoch))),
+                                 x_np[idx, :, :, osvos_layer].astype('uint8'))
+
+      if FLAGS.enable_firstframe:
+        firstframe_layer = get_firstframe_layer(FLAGS)
+        davis.io.imwrite_indexed(os.path.join(savedir, 'firstframe.png'),
+                                 x_np[idx, :, :, firstframe_layer].astype('uint8'))
+
+      if FLAGS.enable_jpg:
+        jpg_layer = get_jpg_layer(FLAGS)
+        skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, jpg_layer])
+
+      davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch{}.png'.format(str(epoch))),
+                               y_np[idx, :, :, 0].astype('uint8'))
+
+      davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))),
+                               (2 * pred_mask_[idx, :, :, 0]).astype('uint8'))
