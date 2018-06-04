@@ -184,31 +184,31 @@ def main(unused_argv):
 
 
       # evaluate the model on train-val
-      if epoch % FLAGS.eval_every_n_epochs == 0:
-        for target in ["train-val", "test"]:
-          if FLAGS.skip_test_mode and target == "test":
-            continue
-          seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
-          if target == "train-val":
-            seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
-
-          logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
-          test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
-            eval_on_test_data(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
-                              placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
-          unique_seq_name = set(seq_list)
-          detailed_loss = ""
-          for seq_name_ in unique_seq_name:
-            detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
-                                                       str(davis_j[seq_name_]["mean"][0]),
-                                                       str(davis_f[seq_name_]["mean"][0]))
-          logger.info(
-            "{} Loss after epoch {}: "
-            "cross-entropy: {}, "
-            "mean J: {}, mean F: {}, "
-            "DETAILS: {}; "
-            "takes {} seconds"
-              .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
+      # if epoch % FLAGS.eval_every_n_epochs == 0:
+      #   for target in ["train-val", "test"]:
+      #     if FLAGS.skip_test_mode and target == "test":
+      #       continue
+      #     seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
+      #     if target == "train-val":
+      #       seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
+      #
+      #     logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
+      #     test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
+      #       eval_on_test_data(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
+      #                         placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
+      #     unique_seq_name = set(seq_list)
+      #     detailed_loss = ""
+      #     for seq_name_ in unique_seq_name:
+      #       detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
+      #                                                  str(davis_j[seq_name_]["mean"][0]),
+      #                                                  str(davis_f[seq_name_]["mean"][0]))
+      #     logger.info(
+      #       "{} Loss after epoch {}: "
+      #       "cross-entropy: {}, "
+      #       "mean J: {}, mean F: {}, "
+      #       "DETAILS: {}; "
+      #       "takes {} seconds"
+      #         .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
@@ -224,7 +224,9 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
   frame_number_by_seq_name = {}
   while True:
     try:
-      x_np, y_np = sess.run(dataset_iterator_test.get_next())
+      batch = sess.run(dataset_iterator_test.get_next())
+      _, _, _, x_np, y_np = batch
+
       # it seems x_np has shape (2, 480, 854, 2) and y_np has shape (2, 480, 854, 1)
       # this is a little unintuitive as we expect it to be batch_size
       feed_dict = {x: x_np, y: y_np}
