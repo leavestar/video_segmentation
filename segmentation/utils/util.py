@@ -141,3 +141,9 @@ def convert_type(osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_
     logging.debug("Type of firstframe_image_file {}".format(type(firstframe_image_file)))
 
   return  osvos_file, maskrcnn_file, groundtruth_label_file, groundtruth_image_file, firstframe_image_file
+
+
+def write_summary(value, tag, summary_writer, global_step):
+  summary = tf.Summary()
+  summary.value.add(tag=tag, simple_value=value)
+  summary_writer.add_summary(summary, global_step)

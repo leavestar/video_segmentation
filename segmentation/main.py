@@ -12,14 +12,14 @@ import logging
 import matplotlib.pyplot as plt
 from model.dataset import load_data, load_data2, dimension_validation, get_channel_dim
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
-from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config
+from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config, write_summary
 import tensorflow.contrib.eager as tfe
 import pdb
 import skimage
 
 from davis import *
 
-env = "jj"
+env = "cloud"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
@@ -132,6 +132,7 @@ def main(unused_argv):
 
   segmentation_dataset_val, val_seq_list = generate_dataset(FLAGS, train_sample)
   segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
+  global_step = tf.Variable(0, name="global_step", trainable=False)
 
   with tf.device(FLAGS.device):
     x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 5])
@@ -144,19 +145,30 @@ def main(unused_argv):
 
     weight = (480*854*FLAGS.batch_size - tf.reduce_sum(y)) / tf.reduce_sum(y)
     loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
+    tf.summary.histogram('loss_histogram', loss)
+
     dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
 
     # osvos_dice loss
     dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.reshape(x[:, :, :, 0], [-1, FLAGS.height, FLAGS.weight]))
 
     loss = tf.reduce_mean(loss)
+
+    tf.summary.scalar('loss', loss)
+    tf.summary.scalar('dice loss', dice_loss)
+
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-      train_op = optimizer.minimize(loss)
+      train_op = optimizer.minimize(loss, global_step=global_step)
 
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
+
+    # For tensorboard
+    summary_writer = tf.summary.FileWriter(root_path+"/train", sess.graph)
+    summaries = tf.summary.merge_all()
+
     logger.info(
       "Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
     for epoch in range(FLAGS.num_epochs):
@@ -179,8 +191,8 @@ def main(unused_argv):
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
             feed_dict = {x: x_np, y: y_np}
-            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_ = \
-              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
             if FLAGS.debug_mode:
               for idx in range(len(seq_name_)):
                 if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and object_number_[idx] == 1) or \
@@ -200,10 +212,15 @@ def main(unused_argv):
                   davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))), (2*pred_mask_[idx, :, :, 0]).astype('uint8'))
 
             toc = time.time()
+
             logger.info(
               "Batch: %i Train Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
               (batch_num, loss_np, dice_loss_, dice_loss_osvos_, weight_, toc - tic)
             )
+            summary_writer.add_summary(summaries_, global_step_)
+            write_summary(loss_np, "Train CE Loss", summary_writer, global_step_)
+            write_summary(dice_loss_, "Train Dice Loss", summary_writer, global_step_)
+
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
           except tf.errors.OutOfRangeError:
