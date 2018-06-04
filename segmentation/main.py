@@ -155,7 +155,7 @@ def main(unused_argv):
     loss = tf.reduce_mean(loss)
 
     tf.summary.scalar('loss', loss)
-    tf.summary.scalar('dice loss', dice_loss)
+    tf.summary.scalar('dice_loss', dice_loss)
 
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
