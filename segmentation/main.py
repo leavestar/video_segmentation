@@ -170,7 +170,8 @@ def main(unused_argv):
     with tf.control_dependencies(update_ops):
       train_op = optimizer.minimize(loss, global_step=global_step)
 
-  with tf.Session() as sess:
+  with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
+                                        log_device_placement=True)) as sess:
     sess.run(tf.global_variables_initializer())
 
     # For tensorboard
