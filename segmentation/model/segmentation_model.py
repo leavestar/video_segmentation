@@ -135,7 +135,7 @@ def model_dim_print(FLAGS, channel_dim, inputs):
                                         ))
 
   layer_list.append(resize_layer)
-  layer_list.append(convolution_layer(FLAGS.num_classes, kernel=(1, 1), activation='sigmoid'))
+  layer_list.append(convolution_layer(1, kernel=(1, 1), activation='sigmoid'))
 
 
   logging.info("Input Layer shape: {}".format(inputs.get_shape()))

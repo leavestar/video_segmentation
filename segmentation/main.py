@@ -10,14 +10,14 @@ import yaml
 import davis
 import logging
 import matplotlib.pyplot as plt
-from model.dataset import load_data, dimension_validation, get_channel_dim
+from model.dataset import load_data, load_data2, dimension_validation, get_channel_dim
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
 from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config
 import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "cloud"
+env = "jingle.jiang"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
@@ -108,7 +108,7 @@ def generate_dataset(FLAGS, seqs, is_shuffle=False):
     raise Exception("Invalid Image Found")
 
   # successfully load dataset
-  segmentation_dataset, seqs = load_data(FLAGS,
+  segmentation_dataset, seqs = load_data2(FLAGS,
     osvos_label_paths,
     maskrcnn_label_paths,
     groundtruth_label_paths,
@@ -132,11 +132,11 @@ def main(unused_argv):
   segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
 
   with tf.device(FLAGS.device):
-    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, get_channel_dim(FLAGS)])
-    y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, FLAGS.num_classes])
+    x = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 5])
+    y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
-    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=get_channel_dim(FLAGS), inputs=x)
+    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=5, inputs=x)
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
@@ -158,11 +158,11 @@ def main(unused_argv):
           try:
             tic = time.time()
             batch = sess.run(dataset_iterator.get_next())
-            x_np, y_np = batch
+            _, _, _, x_np, y_np = batch
             # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
             # further, FLAGS.batch_size==10
-            logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
-            logger.debug("y_np type {}, shape {}".format(type(y_np), y_np.shape))
+            logger.info("x_np type {}, shape {}".format(type(x_np), x_np.shape))
+            logger.info("y_np type {}, shape {}".format(type(y_np), y_np.shape))
             max_label = np.max(y_np)
             if max_label >= FLAGS.num_classes:
               logger.info("WRONG! {} > num_classes".format(max_label))
