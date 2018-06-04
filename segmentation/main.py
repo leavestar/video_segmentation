@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
 tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
 
-tf.app.flags.DEFINE_boolean("enable_osvos", False, "enable_maskrcnn")
+tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
 tf.app.flags.DEFINE_boolean("enable_firstframe", True, "enable_firstframe")
@@ -46,8 +46,8 @@ tf.app.flags.DEFINE_integer("kernel", 3, "weight")
 tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
 
-tf.app.flags.DEFINE_integer("batch_size", 15, "batch_size")
-tf.app.flags.DEFINE_integer("num_epochs", 1, "num_epochs")
+tf.app.flags.DEFINE_integer("batch_size", 20, "batch_size")
+tf.app.flags.DEFINE_integer("num_epochs", 200, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 
@@ -147,7 +147,7 @@ def main(unused_argv):
     dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
 
     # osvos_dice loss
-    dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.squeeze(x[:, :, :, 0]))
+    dice_loss_osvos = dice_coefficient_loss(labels=y, logits=tf.reshape(x[:, :, :, 0], [-1, FLAGS.height, FLAGS.weight]))
 
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
@@ -182,6 +182,7 @@ def main(unused_argv):
             loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_ = \
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos], feed_dict=feed_dict)
             if FLAGS.debug_mode:
+              pdb.set_trace()
               for idx in range(len(seq_name_)):
                 if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and object_number_[idx] == 1) or \
                     (seq_name_[idx].decode("utf-8") == "swing" and image_number_[idx].decode("utf-8") == "00023.png" and object_number_[idx] == 1) or \
@@ -206,7 +207,6 @@ def main(unused_argv):
             )
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
-            # import pdb; pdb.set_trace()
           except tf.errors.OutOfRangeError:
             logger.warn("End of range")
             break
@@ -247,7 +247,6 @@ def main(unused_argv):
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
   # as of V2 on generator, test_seq_list is no longer in use.
-  # import pdb; pdb.set_trace()
   tic = time.time()
   [x, y] = placeholder
   dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
@@ -267,7 +266,6 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
       feed_dict = {x: x_np, y: y_np}
       test_loss_, pred_test = sess.run(ops, feed_dict=feed_dict)
 
-      # import pdb; pdb.set_trace()
       N_, H_, W_, C_ = pred_test.shape
       logging.info("pred_test.shape=={},{},{},{}".format(str(N_), str(H_), str(W_), str(C_)))
       # #TODO
@@ -297,8 +295,6 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
         io.imwrite_indexed(mask_output, base_image)
         if len(np.unique(base_image)) == 1:
           logger.info("problem on predicted base_iamge. maybe all 0 {}".format(mask_output))
-          if FLAGS.debug_mode:
-            import pdb; pdb.set_trace()
 
       test_n += 1
       test_loss += test_loss_
@@ -330,7 +326,6 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
 
 def eval_on_test_data2(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
   # as of V2 on generator, test_seq_list is no longer in use.
-  # import pdb; pdb.set_trace()
   tic = time.time()
   [x, y] = placeholder
   dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
@@ -376,8 +371,6 @@ def eval_on_test_data2(sess, segmentation_dataset_test, test_seq_list, ops, plac
         io.imwrite_indexed(mask_output, base_image)
         if len(np.unique(base_image)) == 1:
           logger.info("problem on predicted base_iamge. maybe all 0 {}".format(mask_output))
-          if FLAGS.debug_mode:
-            import pdb; pdb.set_trace()
 
       test_n += 1
       test_loss += test_loss_
