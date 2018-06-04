@@ -14,10 +14,12 @@ from model.dataset import load_data, load_data2, dimension_validation, get_chann
 from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
 from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config
 import tensorflow.contrib.eager as tfe
+import pdb
+import skimage
 
 from davis import *
 
-env = "cloud"
+env = "jj"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
@@ -94,7 +96,7 @@ def setup(root_path):
   return train_seqs, train_val, test_seqs
 
 
-def generate_dataset(FLAGS, seqs, is_shuffle=False):
+def generate_dataset(FLAGS, seqs, is_shuffle=True):
   osvos_label_paths, maskrcnn_label_paths, groundtruth_label_paths, groundtruth_image_paths, firstframe_image_paths = load_image_files(FLAGS, seqs)
   logger.info("Load {} image samples, sequences: {}".format(len(osvos_label_paths), seqs))
 
@@ -137,8 +139,11 @@ def main(unused_argv):
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
     pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=5, inputs=x)
-    loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
+    # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
+
+    weight = (480*854*FLAGS.batch_size - tf.reduce_sum(y)) / tf.reduce_sum(y)
+    loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
     dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
     loss = tf.reduce_mean(loss)
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
@@ -159,7 +164,14 @@ def main(unused_argv):
           try:
             tic = time.time()
             batch = sess.run(dataset_iterator.get_next())
-            _, _, _, x_np, y_np = batch
+            seq_name_, image_number_, object_number_, x_np, y_np = batch
+            if FLAGS.debug_mode and epoch >= 2:
+              davis.io.imwrite_indexed('./osvos.png', x_np[0,:,:,0].astype('uint8'))
+              davis.io.imwrite_indexed('./firstframe.png', x_np[0,:,:,4].astype('uint8'))
+              skimage.io.imsave('./gt_image.jpg', x_np[0, :, :, 1:4])
+              davis.io.imwrite_indexed('./gt_label.png', y_np[0, :, :, 0].astype('uint8'))
+              # logging.info("saved for seq_name {}, image_#: {}, object_#: {}".format())
+
             # I notice this is shape (4, 480, 854, 2) and (4, 480, 854, 1), expected?
             # further, FLAGS.batch_size==10
             logger.debug("x_np type {}, shape {}".format(type(x_np), x_np.shape))
@@ -169,9 +181,16 @@ def main(unused_argv):
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
             feed_dict = {x: x_np, y: y_np}
-            loss_np, dice_loss_, _, = sess.run([loss, dice_loss, train_op], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, pred_mask_, weight_= sess.run([loss, dice_loss, train_op, pred_mask, weight], feed_dict=feed_dict)
+            if FLAGS.debug_mode and epoch >= 2:
+              pdb.set_trace()
+              davis.io.imwrite_indexed('./predict.png', (2*pred_mask_[0, :, :, 0]).astype('uint8'))
+
             toc = time.time()
-            logger.info("Batch: %i Train Loss: %.4f, dice loss: %.4f, takes %.2f seconds" % (batch_num, loss_np, dice_loss_, toc - tic))
+            logger.info(
+              "Batch: %i Train Loss: %.4f, dice loss: %.4f, pos_weight: %.4f takes %.2f seconds" %
+              (batch_num, loss_np, dice_loss_, weight_, toc - tic)
+            )
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
             # import pdb; pdb.set_trace()

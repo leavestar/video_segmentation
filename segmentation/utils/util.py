@@ -78,7 +78,7 @@ def load_seq_from_yaml(train_path):
   return train_seqs
 
 def path_config(env):
-  if env == "jingle.jiang":
+  if env == "jj":
     tf.app.flags.DEFINE_string("read_path",
                                "/Users/jingle.jiang/personal/class/stanford/cs231n/final/video_segmentation/davis-2017/data/DAVIS",
                                "read_path")
