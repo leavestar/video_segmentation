@@ -80,7 +80,8 @@ def model_init_fn(FLAGS, inputs):
 
 
 def optimizer_init_fn(FLAGS):
-  optimizer = tf.train.AdamOptimizer(FLAGS.lr)
+  optimizer = tf.train.MomentumOptimizer(FLAGS.lr, 0.9, use_nesterov=True)
+  # optimizer = tf.train.AdamOptimizer(FLAGS.lr)
   return optimizer
 
 
@@ -149,7 +150,7 @@ def model_dim_print(FLAGS, channel_dim, inputs):
   return model(inputs=inputs)
 
 # Not used yet
-def dice_coefficient_loss(labels, logits):
+def dice_coefficient_loss(labels=None, logits=None):
   y1 = tf.contrib.layers.flatten(labels)
   y2 = tf.contrib.layers.flatten(logits)
   return 1 - ((2. * tf.reduce_sum(y1 * y2) + smoothness) / (tf.reduce_sum(y1) + tf.reduce_sum(y2) + smoothness))

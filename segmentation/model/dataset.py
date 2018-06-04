@@ -160,7 +160,7 @@ def gen(file_tuple=None):
     osvos_im, _ = davis.io.imread_indexed(osvos_file)
     # maskrcnn_im, _ = davis.io.imread_indexed(maskrcnn_file)
     groundtruth_label_im, _ = davis.io.imread_indexed(groundtruth_label_file)
-    rgb_img = skimage.io.imread(groundtruth_image_path)
+    rgb_img = skimage.io.imread(groundtruth_image_path) / 255
     first_img, _ = davis.io.imread_indexed(firstframe_image_path)
 
     num_classes = np.max(groundtruth_label_im)

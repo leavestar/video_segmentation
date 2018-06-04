@@ -185,32 +185,32 @@ def main(unused_argv):
           tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
 
-      ##### evaluate the model on train-val
-      if epoch % FLAGS.eval_every_n_epochs == 0:
-        for target in ["train-val", "test"]:
-          if FLAGS.skip_test_mode and target == "test":
-            continue
-          seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
-          if target == "train-val":
-            seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
-
-          logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
-          test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
-            eval_on_test_data2(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
-                              placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
-          unique_seq_name = set(seq_list)
-          detailed_loss = ""
-          for seq_name_ in unique_seq_name:
-            detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
-                                                       str(davis_j[seq_name_]["mean"][0]),
-                                                       str(davis_f[seq_name_]["mean"][0]))
-          logger.info(
-            "{} Loss after epoch {}: "
-            "cross-entropy: {}, "
-            "mean J: {}, mean F: {}, "
-            "DETAILS: {}; "
-            "takes {} seconds"
-              .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
+      # ##### evaluate the model on train-val
+      # if epoch % FLAGS.eval_every_n_epochs == 0:
+      #   for target in ["train-val", "test"]:
+      #     if FLAGS.skip_test_mode and target == "test":
+      #       continue
+      #     seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
+      #     if target == "train-val":
+      #       seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
+      #
+      #     logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
+      #     test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
+      #       eval_on_test_data2(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
+      #                         placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
+      #     unique_seq_name = set(seq_list)
+      #     detailed_loss = ""
+      #     for seq_name_ in unique_seq_name:
+      #       detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
+      #                                                  str(davis_j[seq_name_]["mean"][0]),
+      #                                                  str(davis_f[seq_name_]["mean"][0]))
+      #     logger.info(
+      #       "{} Loss after epoch {}: "
+      #       "cross-entropy: {}, "
+      #       "mean J: {}, mean F: {}, "
+      #       "DETAILS: {}; "
+      #       "takes {} seconds"
+      #         .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
