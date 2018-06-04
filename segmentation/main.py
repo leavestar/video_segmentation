@@ -182,7 +182,6 @@ def main(unused_argv):
             loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_ = \
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos], feed_dict=feed_dict)
             if FLAGS.debug_mode:
-              pdb.set_trace()
               for idx in range(len(seq_name_)):
                 if (seq_name_[idx].decode("utf-8") == "tennis" and image_number_[idx].decode("utf-8") == "00057.png" and object_number_[idx] == 1) or \
                     (seq_name_[idx].decode("utf-8") == "swing" and image_number_[idx].decode("utf-8") == "00023.png" and object_number_[idx] == 1) or \
