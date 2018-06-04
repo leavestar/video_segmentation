@@ -80,8 +80,8 @@ def model_init_fn(FLAGS, inputs):
 
 
 def optimizer_init_fn(FLAGS):
-  optimizer = tf.train.MomentumOptimizer(FLAGS.lr, 0.9, use_nesterov=True)
-  # optimizer = tf.train.AdamOptimizer(FLAGS.lr)
+  # optimizer = tf.train.MomentumOptimizer(FLAGS.lr, 0.9, use_nesterov=True)
+  optimizer = tf.train.AdamOptimizer(FLAGS.lr)
   return optimizer
 
 
