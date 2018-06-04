@@ -58,7 +58,10 @@ tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", False, "layer256")
 
 tf.app.flags.DEFINE_integer("eval_every_n_epochs", 2, "eval on test every n trainig epoch")
-tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save on test every n trainig epoch")
+tf.app.flags.DEFINE_integer("save_eval_every_n_epochs", 8,
+                            "save prediction image for further davis score test. need to be multiplier of eval_every_n_epochs")
+
+tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save model checkpoint on every n trainig epoch")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -131,8 +134,8 @@ def main(unused_argv):
   if FLAGS.train_mode:
     segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs)
 
-  segmentation_dataset_val, val_seq_list = generate_dataset(FLAGS, train_sample)
-  segmentation_dataset_test, test_seq_list = generate_dataset(FLAGS, test_seqs, False)
+  segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample)
+  segmentation_dataset_test, _ = generate_dataset(FLAGS, test_seqs, False)
   global_step = tf.Variable(0, name="global_step", trainable=False)
 
   with tf.device(FLAGS.device):
@@ -223,32 +226,55 @@ def main(unused_argv):
           tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
 
-      # ##### evaluate the model on train-val
-      # if epoch % FLAGS.eval_every_n_epochs == 0:
-      #   for target in ["train-val", "test"]:
-      #     if FLAGS.skip_test_mode and target == "test":
-      #       continue
-      #     seq_dataset, seq_list = segmentation_dataset_test, test_seq_list
-      #     if target == "train-val":
-      #       seq_dataset, seq_list = segmentation_dataset_val, val_seq_list
-      #
-      #     logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
-      #     test_loss, davis_j, davis_f, davis_j_mean, davis_f_mean, time_taken = \
-      #       eval_on_test_data2(sess, seq_dataset, seq_list, ops=[loss, pred_mask],
-      #                         placeholder=[x, y], epoch=epoch, FLAGS=FLAGS)
-      #     unique_seq_name = set(seq_list)
-      #     detailed_loss = ""
-      #     for seq_name_ in unique_seq_name:
-      #       detailed_loss += "{}: J {}, F {}; ".format(seq_name_,
-      #                                                  str(davis_j[seq_name_]["mean"][0]),
-      #                                                  str(davis_f[seq_name_]["mean"][0]))
-      #     logger.info(
-      #       "{} Loss after epoch {}: "
-      #       "cross-entropy: {}, "
-      #       "mean J: {}, mean F: {}, "
-      #       "DETAILS: {}; "
-      #       "takes {} seconds"
-      #         .format(target, epoch, test_loss, str(davis_j_mean), str(davis_f_mean), detailed_loss, str(time_taken)))
+      ##### evaluate the model on train-val
+      if epoch % FLAGS.eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
+        for target in ["train-val", "test"]:
+          if FLAGS.skip_test_mode and target == "test":
+            continue
+          seq_dataset = segmentation_dataset_val if target == "train-val" else segmentation_dataset_test
+          seq_dataset = seq_dataset.make_one_shot_iterator()
+
+          logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
+
+          batch_num = -1
+          while True:
+            try:
+              batch_num += 1
+              batch = sess.run(seq_dataset.get_next())
+              seq_name_, image_number_, object_number_, x_np, y_np = batch
+
+              loss_np, dice_loss_, pred_mask_, dice_loss_osvos_, summaries_, global_step_ = \
+                sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
+
+              logger.info(
+                "Batch: %i %s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
+                (batch_num, target, loss_np, dice_loss_, dice_loss_osvos_)
+              )
+
+              summary_writer.add_summary(summaries_, global_step_)
+              write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
+              write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+
+              test_mask_output = os.path.join(root_path, "eval", str(epoch), "target")
+              # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
+
+              if epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
+                # now persist prediction to disk for later davis-score computation
+                for idx in range(len(seq_name_)):
+
+                    seq_name__ = seq_name_[idx].decode("utf-8")
+                    image_number__ = image_number_[idx].decode("utf-8")
+                    obj_number = str(object_number_[idx])
+                    savedir_ = os.path.join(test_mask_output, seq_name__, obj_number)
+                    if not os.path.exists(savedir_):
+                      os.makedirs(savedir_)
+
+                    _pred_to_save = np.zeros((FLAGS.height, FLAGS.weight), dtype='uint8')
+                    _pred_to_save[pred_mask_[idx, :, :, 0] > 0.5] = 1
+                    davis.io.imwrite_indexed(os.path.join(savedir_, image_number__), _pred_to_save)
+            except tf.errors.OutOfRangeError:
+              logger.warn("End of range")
+              break
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
@@ -331,79 +357,9 @@ def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, place
 
 
 def eval_on_test_data2(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
-  # as of V2 on generator, test_seq_list is no longer in use.
-  tic = time.time()
-  [x, y] = placeholder
-  dataset_iterator_test = segmentation_dataset_test.make_one_shot_iterator()
-  test_loss, davis_j, davis_f, test_n = 0.0, {}, {}, 0
-
-  test_mask_output = os.path.join(root_path, "unet")
-  # save predicted mask to somewhere
-  while True:
-    try:
-      batch = sess.run(dataset_iterator_test.get_next())
-      seq_name_list, image_number_list, object_number_list, x_np, y_np = batch
-
-      feed_dict = {x: x_np, y: y_np}
-      test_loss_, pred_test = sess.run(ops, feed_dict=feed_dict)
-      # pred_test is of shape batch * H * W * 1 for each one of the object (multiple rows for same image)
-
-      N_, H_, W_, C_ = pred_test.shape
-      logging.info("pred_test.shape=={},{},{},{}".format(str(N_), str(H_), str(W_), str(C_)))
-      # #TODO
-      # if np.sum(pred_test> 1) > 0:
-      #   logging.info("pred_test has {} >0".format(np.sum(pred_test> 1)))
-      for i in range(N_):
-        seq_name = seq_name_list[i]
-        seq_number = image_number_list[i]
-        object_number = object_number_list[i]
-
-        mask_output_dir = "{}/{}/{}/{}".format(test_mask_output, seq_name, str(epoch), seq_name)
-        # print mask_output_dir
-        if not os.path.exists(mask_output_dir):
-          os.makedirs(mask_output_dir)
-
-        mask_output = "{}/{:05d}.png".format(mask_output_dir, seq_number)
-
-        #  pred_test is now (N_, H_, W_, num_class), we convert it to (H_, W_)
-        # upon observation, turns out pred_test usually have very large 0 prediction equally large as other prediction.
-        # to prevent constant 0 prediction, we reverse the list
-        pred_test_ = pred_test[i, :, :, ::-1]
-        base_image = np.squeeze(np.argmax(pred_test_, axis=-1))
-        base_image = -base_image + FLAGS.num_classes - 1
-        # above 3 line equlivalent to base_image = np.squeeze(np.argmax(pred_test[i, :, :, :], axis=-1))
-
-        base_image = base_image.astype(np.uint8)
-        io.imwrite_indexed(mask_output, base_image)
-        if len(np.unique(base_image)) == 1:
-          logger.info("problem on predicted base_iamge. maybe all 0 {}".format(mask_output))
-
-      test_n += 1
-      test_loss += test_loss_
-    except tf.errors.OutOfRangeError:
-      logger.warn("End of test range")
-      break
-
-  # not finish yet! eval davis performance
-  unique_seq_name = set(test_seq_list)
-  davis_j_mean, davis_f_mean = 0.0, 0.0
-  for seq_name in unique_seq_name:
-    mask_output_dir = "{}/{}/{}/{}".format(test_mask_output, seq_name, str(epoch), seq_name)
-    sg = Segmentation(mask_output_dir, False)
-
-    ground_truth_dir_ = "{}/{}/{}".format(FLAGS.read_path, FLAGS.groundtruth_label_path, seq_name)
-    ground_truth = Segmentation(ground_truth_dir_, False)
-
-    davis_j[seq_name] = db_eval_sequence(sg, ground_truth, measure="J", n_jobs=32)
-    davis_f[seq_name] = db_eval_sequence(sg, ground_truth, measure="F", n_jobs=32)
-    davis_j_mean += davis_j[seq_name]["mean"][0]
-    davis_f_mean += davis_f[seq_name]["mean"][0]
-
-  toc = time.time()
-  if test_n == 0:
-    test_n = 1
-  return test_loss / test_n, davis_j, davis_f, \
-         davis_j_mean / len(unique_seq_name), davis_f_mean / len(unique_seq_name), toc - tic
+  # for the per-object-based method in Approach 2, its hard to evaluate davis loss on the fly. instead, we save
+  # each image on to disk and later run a seperate script to combine/post-process them
+  raise NotImplementedError
 
 
 if __name__ == "__main__":
