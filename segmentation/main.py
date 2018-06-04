@@ -121,7 +121,7 @@ def generate_dataset(FLAGS, seqs, is_shuffle=True):
     groundtruth_image_paths,
     firstframe_image_paths)
   if is_shuffle:
-    segmentation_dataset = segmentation_dataset.shuffle(buffer_size=10000)
+    segmentation_dataset = segmentation_dataset.shuffle(buffer_size=1000)
   segmentation_dataset = segmentation_dataset.batch(FLAGS.batch_size)
   return segmentation_dataset, seqs
 
