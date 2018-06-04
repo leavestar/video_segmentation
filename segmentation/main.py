@@ -17,7 +17,7 @@ import tensorflow.contrib.eager as tfe
 
 from davis import *
 
-env = "jingle.jiang"
+env = "cloud"
 path_config(env)
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
