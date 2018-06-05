@@ -366,11 +366,11 @@ def main(unused_argv):
           else:
             summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={x: x_np, y: y_np})
             summary_writer.add_summary(summaries_, global_step_)
-            write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
-            write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+            write_summary(loss_np_, "Test CE Loss", summary_writer, global_step_)
+            write_summary(dice_loss__, "Test Dice Loss", summary_writer, global_step_)
 
           # now check best_test_dice_loss_sofar
-          if (best_test_dice_loss_sofar is None or dice_loss__ > best_test_dice_loss_sofar):
+          if (best_test_dice_loss_sofar is None or dice_loss__ < best_test_dice_loss_sofar):
             # save model
             best_test_dice_loss_sofar = dice_loss__
             logger.info(
