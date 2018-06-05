@@ -234,7 +234,7 @@ def main(unused_argv):
               continue
 
             if np.max(pred_mask_) > 1:
-              print np.where(np.max(pred_mask_, axis=(1,2,3)) > 1)
+              print (np.where(np.max(pred_mask_, axis=(1,2,3)) > 1))
 
             if np.max(y_np) > 1: # very important as we are working on binary classification
               print(seq_name_)
