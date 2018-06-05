@@ -89,8 +89,20 @@ def model_dim_print(FLAGS, channel_dim, inputs):
   input_shape = (FLAGS.height, FLAGS.weight, channel_dim)
 
   layer_list = []
+  layer_list.append(tf.keras.layers.InputLayer(input_shape=input_shape))
+
+  if FLAGS.layer8:
+    layer_list.append(convolution_layer(8))
+    layer_list.append(convolution_layer(8))
+    layer_list.append(max_pooling_layer())
+
+  if FLAGS.layer16:
+    layer_list.append(convolution_layer(16))
+    layer_list.append(convolution_layer(16))
+    layer_list.append(max_pooling_layer())
+
   if FLAGS.layer32:
-    layer_list.append(convolution_layer(32, input_shape=input_shape))
+    layer_list.append(convolution_layer(32))
     layer_list.append(convolution_layer(32))
     layer_list.append(max_pooling_layer())
 
@@ -128,6 +140,16 @@ def model_dim_print(FLAGS, channel_dim, inputs):
     layer_list.append(concatenated_de_convolution_layer(32))
     layer_list.append(convolution_layer(32))
     layer_list.append(convolution_layer(32))
+
+  if FLAGS.layer16:
+    layer_list.append(concatenated_de_convolution_layer(16))
+    layer_list.append(convolution_layer(16))
+    layer_list.append(convolution_layer(16))
+
+  if FLAGS.layer8:
+    layer_list.append(concatenated_de_convolution_layer(8))
+    layer_list.append(convolution_layer(8))
+    layer_list.append(convolution_layer(8))
 
   resize_layer = tf.keras.layers.Lambda(lambda image:
                                         tf.image.resize_images(

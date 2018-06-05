@@ -52,9 +52,11 @@ tf.app.flags.DEFINE_integer("num_epochs", 200, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 
+tf.app.flags.DEFINE_boolean("layer8", True, "layer8")
+tf.app.flags.DEFINE_boolean("layer16", True, "layer16")
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
-tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
-tf.app.flags.DEFINE_boolean("layer128", True, "layer128")
+tf.app.flags.DEFINE_boolean("layer64", False, "layer64")
+tf.app.flags.DEFINE_boolean("layer128", False, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", False, "layer256")
 
 tf.app.flags.DEFINE_integer("eval_every_n_epochs", 2, "eval on test every n trainig epoch")
@@ -137,6 +139,8 @@ def main(unused_argv):
   segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample)
   segmentation_dataset_test, _ = generate_dataset(FLAGS, test_seqs, False)
   global_step = tf.Variable(0, name="global_step", trainable=False)
+  exp_loss = None
+  exp_dice_loss = None
 
   with tf.device(FLAGS.device):
     channel_dim = get_channel_dimension2(FLAGS)
@@ -162,8 +166,21 @@ def main(unused_argv):
 
     loss = tf.reduce_mean(loss)
 
+    if not exp_loss:  # first iter
+      exp_loss = loss
+    else:
+      exp_loss = 0.99 * exp_loss + 0.01 * loss
+
+    if not exp_dice_loss:
+      exp_dice_loss = dice_loss
+    else:
+      exp_dice_loss = 0.99 * exp_dice_loss + 0.01 * dice_loss
+
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('dice_loss', dice_loss)
+
+    tf.summary.scalar('exp_loss', exp_loss)
+    tf.summary.scalar('exp_dice_loss', exp_dice_loss)
 
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -199,20 +216,28 @@ def main(unused_argv):
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
             feed_dict = {x: x_np, y: y_np}
-            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
-              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, exp_loss_, exp_dice_loss_ = \
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries, exp_loss, exp_dice_loss], feed_dict=feed_dict)
+
+            if loss_np > 2.0:
+              logger.info("End of epoch, discard last batch")
+              break
+
             if FLAGS.debug_mode:
               print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_)
 
             toc = time.time()
 
             logger.info(
-              "Batch: %i Train Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
-              (batch_num, loss_np, dice_loss_, dice_loss_osvos_, weight_, toc - tic)
+              "Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f,  dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
+              (batch_num, loss_np, dice_loss_, exp_loss_, exp_dice_loss_, dice_loss_osvos_, weight_, toc - tic)
             )
             summary_writer.add_summary(summaries_, global_step_)
             write_summary(loss_np, "Train CE Loss", summary_writer, global_step_)
             write_summary(dice_loss_, "Train Dice Loss", summary_writer, global_step_)
+
+            write_summary(exp_loss_, "Smoothed Train CE Loss", summary_writer, global_step_)
+            write_summary(exp_dice_loss_, "Smoothed Train Dice Loss", summary_writer, global_step_)
 
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
