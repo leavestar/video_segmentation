@@ -354,29 +354,30 @@ def main(unused_argv):
 
         loss_np_, dice_loss__, dice_loss_osvos__ = loss_np_/batch_num, dice_loss__/batch_num, dice_loss_osvos__/batch_num
 
-        # save this batch's score to tensorboard
-        if x_np is None or y_np is None:
-          logger.info("skip tensorboard test loss writing...")
-        else:
-          summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={x: x_np, y: y_np})
-          summary_writer.add_summary(summaries_, global_step_)
-          write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
-          write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
-
         logger.info(
           "%s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
           (target, loss_np_, dice_loss__, dice_loss_osvos__)
         )
 
-        # now check best_test_dice_loss_sofar
-        if target == "test" and (best_test_dice_loss_sofar is None or dice_loss__ > best_test_dice_loss_sofar):
-          # save model
-          best_test_dice_loss_sofar = dice_loss__
-          logger.info(
-            "saving best model: Epoch %i, test_dice_loss %.4f" %
-            (epoch, best_test_dice_loss_sofar)
-          )
-          tf.train.Saver().save(sess=sess, save_path=root_path + "/models/best/model.ckpt")
+        # save this batch's score to tensorboard
+        if target == "test" and not FLAGS.skip_test_mode:
+          if x_np is None or y_np is None:
+            logger.info("skip tensorboard test loss writing...")
+          else:
+            summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={x: x_np, y: y_np})
+            summary_writer.add_summary(summaries_, global_step_)
+            write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
+            write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+
+          # now check best_test_dice_loss_sofar
+          if (best_test_dice_loss_sofar is None or dice_loss__ > best_test_dice_loss_sofar):
+            # save model
+            best_test_dice_loss_sofar = dice_loss__
+            logger.info(
+              "saving best model: Epoch %i, test_dice_loss %.4f" %
+              (epoch, best_test_dice_loss_sofar)
+            )
+            tf.train.Saver().save(sess=sess, save_path=root_path + "/models/best/model.ckpt")
 
 
 
