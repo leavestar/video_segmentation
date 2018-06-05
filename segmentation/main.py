@@ -51,6 +51,7 @@ tf.app.flags.DEFINE_integer("batch_size", 20, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 30, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00004, "learning rate")
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
+tf.app.flags.DEFINE_boolean("shuffle_train", False, "shuffle")
 
 tf.app.flags.DEFINE_boolean("layer8", True, "layer8")
 tf.app.flags.DEFINE_boolean("layer16", True, "layer16")
@@ -136,9 +137,9 @@ def main(unused_argv):
 
   # construct image files array
   if FLAGS.train_mode:
-    segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs)
+    segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs, FLAGS.shuffle_train)
 
-  segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample)
+  segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample, False)
   segmentation_dataset_test, _ = generate_dataset(FLAGS, test_seqs, False)
   global_step = tf.Variable(0, name="global_step", trainable=False)
   exp_loss = None
