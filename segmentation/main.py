@@ -163,7 +163,7 @@ def main(unused_argv):
     loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
     tf.summary.histogram('loss_histogram', loss)
 
-    dice_loss, num, den1, den2 = dice_coefficient_loss(labels=y, logits=pred_mask)
+    dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
 
     # osvos_dice loss
     if FLAGS.enable_osvos:
@@ -213,8 +213,7 @@ def main(unused_argv):
             feed_dict = {x: x_np, y: y_np}
 
             loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, _, _, _ = \
-              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step,
-                        summaries, num, den1, den2], feed_dict=feed_dict)
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
 
             if not exp_loss:  # first iter
               exp_loss = loss_np
