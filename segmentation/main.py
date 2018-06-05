@@ -242,6 +242,8 @@ def main(unused_argv):
               print(object_number_)
               print(np.where(np.max(y_np, axis=(1,2,3)) > 1))
 
+            assert np.max(pred_mask_) <= 1 and np.max(y_np) <= 1
+
             if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
               print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_, epoch)
 
