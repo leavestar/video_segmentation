@@ -96,7 +96,7 @@ def unet_w_connect(FLAGS, channel_dim, inputs):
                          ))(deconv_merge0)
 
   input_layers.append(resized)
-  final_layer =  convolution_layer(1, kernel=(1, 1), activation='relu')(resized)
+  final_layer =  convolution_layer(1, kernel=(1, 1), activation='sigmoid')(resized)
   input_layers.append(final_layer)
   for index in range(len(input_layers)):
     logging.info("Layer {} shape:{}".format(index, input_layers[index].shape))
@@ -282,7 +282,7 @@ def unet_w_connect128(FLAGS, channel_dim, inputs):
                          ))(deconv_merge0)
 
   input_layers.append(resized)
-  final_layer =  convolution_layer(1, kernel=(1, 1), activation='relu')(resized)
+  final_layer =  convolution_layer(1, kernel=(1, 1), activation='sigmoid')(resized)
   input_layers.append(final_layer)
   for index in range(len(input_layers)):
     logging.info("Layer {} shape:{}".format(index, input_layers[index].shape))
