@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 from model.dataset import load_data, dimension_validation, get_channel_dim
 from model.dataset_gen import load_data2
-from model.segmentation_model import unet_wo_connect, optimizer_init_fn, unet_w_connect, dice_coefficient_loss, unet_w_connect128
+from model.segmentation_model import unet_wo_connect, optimizer_init_fn, unet_w_connect, dice_coefficient_loss, unet_w_connect128, unet_w_connect_unet
 from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config, write_summary, print_image, get_channel_dimension2
 import tensorflow.contrib.eager as tfe
 import pdb
@@ -27,8 +27,9 @@ tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
 tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
-tf.app.flags.DEFINE_boolean("enable_connect128", False, "enable_connect128")
-tf.app.flags.DEFINE_boolean("enable_connect", True, "enable_connect")
+tf.app.flags.DEFINE_boolean("enable_connect_unet", True, "enable_connect_unet")
+tf.app.flags.DEFINE_boolean("enable_connect128", True, "enable_connect128")
+tf.app.flags.DEFINE_boolean("enable_connect", False, "enable_connect")
 
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
@@ -154,7 +155,9 @@ def main(unused_argv):
     y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
-    if FLAGS.enable_connect128:
+    if FLAGS.enable_connect_unet:
+      pred_mask = unet_w_connect_unet(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
+    elif FLAGS.enable_connect128:
       pred_mask = unet_w_connect128(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
     elif FLAGS.enable_connect:
       pred_mask = unet_w_connect(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
