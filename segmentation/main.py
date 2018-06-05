@@ -173,21 +173,8 @@ def main(unused_argv):
 
     loss = tf.reduce_mean(loss)
 
-    if not exp_loss:  # first iter
-      exp_loss = loss
-    else:
-      exp_loss = 0.99 * exp_loss + 0.01 * loss
-
-    if not exp_dice_loss:
-      exp_dice_loss = dice_loss
-    else:
-      exp_dice_loss = 0.99 * exp_dice_loss + 0.01 * dice_loss
-
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('dice_loss', dice_loss)
-
-    tf.summary.scalar('exp_loss', exp_loss)
-    tf.summary.scalar('exp_dice_loss', exp_dice_loss)
 
     optimizer = optimizer_init_fn(FLAGS=FLAGS)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -225,8 +212,18 @@ def main(unused_argv):
 
             feed_dict = {x: x_np, y: y_np}
 
-            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, exp_loss_, exp_dice_loss_ = \
-              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries, exp_loss, exp_dice_loss], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
+
+            if not exp_loss:  # first iter
+              exp_loss = loss_np
+            else:
+              exp_loss = 0.99 * exp_loss + 0.01 * loss_np
+
+            if not exp_dice_loss:
+              exp_dice_loss = dice_loss_
+            else:
+              exp_dice_loss = 0.99 * exp_dice_loss + 0.01 * dice_loss_
 
             if loss_np > 2.0:
               logger.info("(potentially) End of training epoch, discard last batch")
@@ -239,14 +236,14 @@ def main(unused_argv):
 
             logger.info(
               "Epoch: %i Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f,  dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
-              (epoch, batch_num, loss_np, dice_loss_, exp_loss_, exp_dice_loss_, dice_loss_osvos_, weight_, toc - tic)
+              (epoch, batch_num, loss_np, dice_loss_, exp_loss, exp_dice_loss, dice_loss_osvos_, weight_, toc - tic)
             )
             summary_writer.add_summary(summaries_, global_step_)
             write_summary(loss_np, "Train CE Loss", summary_writer, global_step_)
             write_summary(dice_loss_, "Train Dice Loss", summary_writer, global_step_)
 
-            write_summary(exp_loss_, "Smoothed Train CE Loss", summary_writer, global_step_)
-            write_summary(exp_dice_loss_, "Smoothed Train Dice Loss", summary_writer, global_step_)
+            write_summary(exp_loss, "Smoothed Train CE Loss", summary_writer, global_step_)
+            write_summary(exp_dice_loss, "Smoothed Train Dice Loss", summary_writer, global_step_)
 
             # logger.info("total loss shape {}, value {}".format(total_loss_.shape, str(total_loss_)))
             batch_num += 1
