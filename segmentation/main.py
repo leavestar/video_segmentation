@@ -216,7 +216,7 @@ def main(unused_argv):
 
             feed_dict = {x: x_np, y: y_np}
 
-            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, _, _, _ = \
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
 
             if not exp_loss:  # first iter
