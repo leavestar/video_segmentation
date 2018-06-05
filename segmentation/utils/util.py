@@ -200,26 +200,29 @@ def print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pre
       seq_name__ = seq_name_[idx].decode("utf-8")
       image_number__ = image_number_[idx].decode("utf-8")
       obj_number = str(object_number_[idx])
-      savedir = "./visualize/{}/{}/obj_{}".format(seq_name__, image_number__, obj_number)
+      savedir = os.path.join(FLAGS.output_path, FLAGS.model_label, "visualize", seq_name__, image_number__, "obj_" + obj_number)
       if not os.path.exists(savedir):
         os.makedirs(savedir)
 
-      if FLAGS.enable_osvos:
+      if FLAGS.enable_osvos and epoch == 0:
+        # since osvos does not change, we only save the first epoch
         osvos_layer = get_osvos_layer(FLAGS)
-        davis.io.imwrite_indexed(os.path.join(savedir, 'osvos_epoch{}.png'.format(str(epoch))),
+        davis.io.imwrite_indexed(os.path.join(savedir, 'osvos_epoch.png'),
                                  x_np[idx, :, :, osvos_layer].astype('uint8'))
 
-      if FLAGS.enable_firstframe:
+      if FLAGS.enable_firstframe and epoch == 0:
         firstframe_layer = get_firstframe_layer(FLAGS)
         davis.io.imwrite_indexed(os.path.join(savedir, 'firstframe.png'),
                                  x_np[idx, :, :, firstframe_layer].astype('uint8'))
 
-      if FLAGS.enable_jpg:
+      if FLAGS.enable_jpg and epoch == 0:
         jpg_layer = get_jpg_layer(FLAGS)
         skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, jpg_layer])
 
-      davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch{}.png'.format(str(epoch))),
-                               y_np[idx, :, :, 0].astype('uint8'))
+      if epoch == 0:
+        davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch.png'),
+                                 y_np[idx, :, :, 0].astype('uint8'))
 
-      davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))),
-                               (2 * pred_mask_[idx, :, :, 0]).astype('uint8'))
+      _pred_to_save = np.zeros((FLAGS.height, FLAGS.weight), dtype='uint8')
+      _pred_to_save[pred_mask_[idx, :, :, 0] > 0.5] = 1
+      davis.io.imwrite_indexed(os.path.join(savedir, 'predict_epoch{}.png'.format(str(epoch))), _pred_to_save)

@@ -65,6 +65,9 @@ tf.app.flags.DEFINE_integer("save_eval_every_n_epochs", 8,
 
 tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save model checkpoint on every n trainig epoch")
 
+tf.app.flags.DEFINE_integer("save_train_animation_every_n_epochs", 2, "as name suggest")
+
+
 FLAGS = tf.app.flags.FLAGS
 
 root_path = os.path.join(FLAGS.output_path, FLAGS.model_label)
@@ -215,15 +218,17 @@ def main(unused_argv):
             if max_label >= FLAGS.num_classes:
               logger.info("WRONG! {} > num_classes".format(max_label))
               continue
+
             feed_dict = {x: x_np, y: y_np}
+
             loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, exp_loss_, exp_dice_loss_ = \
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries, exp_loss, exp_dice_loss], feed_dict=feed_dict)
 
             if loss_np > 2.0:
-              logger.info("End of epoch, discard last batch")
-              break
+              logger.info("(potentially) End of epoch, discard last batch")
+              continue
 
-            if FLAGS.debug_mode:
+            if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
               print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_)
 
             toc = time.time()
@@ -251,55 +256,67 @@ def main(unused_argv):
           tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
 
-      ##### evaluate the model on train-val
-      if epoch % FLAGS.eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
-        for target in ["train-val", "test"]:
-          if FLAGS.skip_test_mode and target == "test":
-            continue
-          seq_dataset = segmentation_dataset_val if target == "train-val" else segmentation_dataset_test
-          seq_dataset = seq_dataset.make_one_shot_iterator()
+      ##### evaluate the model on train-val and test, for EVERY EPOCH
 
-          logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
+      for target in ["train-val", "test"]:
+        if FLAGS.skip_test_mode and target == "test":
+          continue
 
-          batch_num = -1
-          while True:
-            try:
-              batch_num += 1
-              batch = sess.run(seq_dataset.get_next())
-              seq_name_, image_number_, object_number_, x_np, y_np = batch
+        seq_dataset = segmentation_dataset_val if target == "train-val" else segmentation_dataset_test
+        seq_dataset = seq_dataset.make_one_shot_iterator()
 
-              loss_np, dice_loss_, pred_mask_, dice_loss_osvos_, summaries_, global_step_ = \
-                sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
+        logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
 
-              logger.info(
-                "Batch: %i %s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
-                (batch_num, target, loss_np, dice_loss_, dice_loss_osvos_)
-              )
+        batch_num = -1
+        loss_np_, dice_loss__, dice_loss_osvos__ = 0.0, 0.0, 0.0
+        while True:
+          try:
+            batch_num += 1
+            batch = sess.run(seq_dataset.get_next())
+            seq_name_, image_number_, object_number_, x_np, y_np = batch
 
-              summary_writer.add_summary(summaries_, global_step_)
-              write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
-              write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+            loss_np, dice_loss_, pred_mask_, dice_loss_osvos_, summaries_, global_step_ = \
+              sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
 
-              test_mask_output = os.path.join(root_path, "eval", str(epoch), "target")
-              # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
+            if loss_np > 3:
+              continue  # we observed that the last epoch has some wiredness due to under-rank.
 
-              if epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
-                # now persist prediction to disk for later davis-score computation
-                for idx in range(len(seq_name_)):
+            loss_np_ += loss_np
+            dice_loss__ += dice_loss_
+            dice_loss_osvos__ += dice_loss_osvos_
 
-                    seq_name__ = seq_name_[idx].decode("utf-8")
-                    image_number__ = image_number_[idx].decode("utf-8")
-                    obj_number = str(object_number_[idx])
-                    savedir_ = os.path.join(test_mask_output, seq_name__, obj_number)
-                    if not os.path.exists(savedir_):
-                      os.makedirs(savedir_)
+            summary_writer.add_summary(summaries_, global_step_)
+            write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
+            write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
 
-                    _pred_to_save = np.zeros((FLAGS.height, FLAGS.weight), dtype='uint8')
-                    _pred_to_save[pred_mask_[idx, :, :, 0] > 0.5] = 1
-                    davis.io.imwrite_indexed(os.path.join(savedir_, image_number__), _pred_to_save)
-            except tf.errors.OutOfRangeError:
-              logger.warn("End of range")
-              break
+            test_mask_output = os.path.join(root_path, "eval", str(epoch), "target")
+            # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
+
+            if epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
+              # now persist prediction to disk for later davis-score computation
+              for idx in range(len(seq_name_)):
+                  seq_name__ = seq_name_[idx].decode("utf-8")
+                  image_number__ = image_number_[idx].decode("utf-8")
+                  obj_number = str(object_number_[idx])
+                  savedir_ = os.path.join(test_mask_output, seq_name__, obj_number)
+                  if not os.path.exists(savedir_):
+                    os.makedirs(savedir_)
+
+                  _pred_to_save = np.zeros((FLAGS.height, FLAGS.weight), dtype='uint8')
+                  _pred_to_save[pred_mask_[idx, :, :, 0] > 0.5] = 1
+                  davis.io.imwrite_indexed(os.path.join(savedir_, image_number__), _pred_to_save)
+                
+          except tf.errors.OutOfRangeError:
+            logger.warn("End of range")
+            break
+
+        batch_num += 1
+        loss_np_, dice_loss__, dice_loss_osvos__ = loss_np_/batch_num, dice_loss__/batch_num, dice_loss_osvos__/batch_num
+
+        logger.info(
+          "%s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
+          (target, loss_np_, dice_loss__, dice_loss_osvos__)
+        )
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
