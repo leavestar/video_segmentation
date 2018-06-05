@@ -49,7 +49,7 @@ tf.app.flags.DEFINE_integer("pool", 2, "weight")
 
 tf.app.flags.DEFINE_integer("batch_size", 20, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 30, "num_epochs")
-tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
+tf.app.flags.DEFINE_float("lr", 0.00004, "learning rate")
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 
 tf.app.flags.DEFINE_boolean("layer8", True, "layer8")
