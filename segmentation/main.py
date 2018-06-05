@@ -163,7 +163,7 @@ def main(unused_argv):
     loss = tf.nn.weighted_cross_entropy_with_logits(targets=y, logits=pred_mask, pos_weight=weight)
     tf.summary.histogram('loss_histogram', loss)
 
-    dice_loss = dice_coefficient_loss(labels=y, logits=pred_mask)
+    dice_loss, num, den1, den2 = dice_coefficient_loss(labels=y, logits=pred_mask)
 
     # osvos_dice loss
     if FLAGS.enable_osvos:
@@ -212,8 +212,9 @@ def main(unused_argv):
 
             feed_dict = {x: x_np, y: y_np}
 
-            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_ = \
-              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries], feed_dict=feed_dict)
+            loss_np, dice_loss_, _, pred_mask_, weight_, dice_loss_osvos_, global_step_, summaries_, _, _, _ = \
+              sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step,
+                        summaries, num, den1, den2], feed_dict=feed_dict)
 
             if not exp_loss:  # first iter
               exp_loss = loss_np
@@ -229,13 +230,16 @@ def main(unused_argv):
               logger.info("(potentially) End of training epoch, discard last batch")
               continue
 
+            assert np.max(pred_mask_) < 1 and np.max(y_np) < 1 # very important as we are working on binary classification
+
             if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
               print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_, epoch)
 
             toc = time.time()
 
             logger.info(
-              "Epoch: %i Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f,  dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
+              "Epoch: %i Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f, "
+              " dice_loss_osvos_: %4f, pos_weight: %.4f, takes %.2f seconds" %
               (epoch, batch_num, loss_np, dice_loss_, exp_loss, exp_dice_loss, dice_loss_osvos_, weight_, toc - tic)
             )
             summary_writer.add_summary(summaries_, global_step_)
