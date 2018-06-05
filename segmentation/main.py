@@ -229,7 +229,7 @@ def main(unused_argv):
               continue
 
             if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
-              print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_)
+              print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_, epoch)
 
             toc = time.time()
 
