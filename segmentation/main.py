@@ -48,7 +48,7 @@ tf.app.flags.DEFINE_integer("pad", 1, "weight")
 tf.app.flags.DEFINE_integer("pool", 2, "weight")
 
 tf.app.flags.DEFINE_integer("batch_size", 20, "batch_size")
-tf.app.flags.DEFINE_integer("num_epochs", 200, "num_epochs")
+tf.app.flags.DEFINE_integer("num_epochs", 30, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00002, "learning rate")
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 
@@ -59,11 +59,10 @@ tf.app.flags.DEFINE_boolean("layer64", False, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", False, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", False, "layer256")
 
-tf.app.flags.DEFINE_integer("eval_every_n_epochs", 2, "eval on test every n trainig epoch")
-tf.app.flags.DEFINE_integer("save_eval_every_n_epochs", 8,
-                            "save prediction image for further davis score test. need to be multiplier of eval_every_n_epochs")
+tf.app.flags.DEFINE_integer("save_eval_every_n_epochs", 4,
+                            "save prediction image for further davis score test")
 
-tf.app.flags.DEFINE_integer("save_every_n_epochs", 5, "save model checkpoint on every n trainig epoch")
+tf.app.flags.DEFINE_integer("save_every_n_epochs", 4, "save model checkpoint on every n trainig epoch")
 
 tf.app.flags.DEFINE_integer("save_train_animation_every_n_epochs", 2, "as name suggest")
 
@@ -225,7 +224,7 @@ def main(unused_argv):
               sess.run([loss, dice_loss, train_op, pred_mask, weight, dice_loss_osvos, global_step, summaries, exp_loss, exp_dice_loss], feed_dict=feed_dict)
 
             if loss_np > 2.0:
-              logger.info("(potentially) End of epoch, discard last batch")
+              logger.info("(potentially) End of training epoch, discard last batch")
               continue
 
             if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
@@ -278,7 +277,9 @@ def main(unused_argv):
             loss_np, dice_loss_, pred_mask_, dice_loss_osvos_, summaries_, global_step_ = \
               sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
 
-            if loss_np > 3:
+            if loss_np > 2:
+              batch_num -= 1
+              logger.info("(potentially) End of {} epoch, discard last batch".format(target))
               continue  # we observed that the last epoch has some wiredness due to under-rank.
 
             loss_np_ += loss_np
@@ -289,11 +290,12 @@ def main(unused_argv):
             write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
             write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
 
-            test_mask_output = os.path.join(root_path, "eval", str(epoch), "target")
-            # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
-
             if epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
               # now persist prediction to disk for later davis-score computation
+
+              test_mask_output = os.path.join(root_path, "eval", str(epoch), target)
+              # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
+
               for idx in range(len(seq_name_)):
                   seq_name__ = seq_name_[idx].decode("utf-8")
                   image_number__ = image_number_[idx].decode("utf-8")
