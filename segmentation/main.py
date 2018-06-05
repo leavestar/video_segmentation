@@ -312,7 +312,7 @@ def main(unused_argv):
             seq_name_, image_number_, object_number_, x_np, y_np = batch
 
             loss_np, dice_loss_, pred_mask_, dice_loss_osvos_ = \
-              sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
+              sess.run([loss, dice_loss, pred_mask, dice_loss_osvos], feed_dict={x: x_np, y: y_np})
 
             if loss_np > 2:
               batch_num -= 1
@@ -349,7 +349,7 @@ def main(unused_argv):
         loss_np_, dice_loss__, dice_loss_osvos__ = loss_np_/batch_num, dice_loss__/batch_num, dice_loss_osvos__/batch_num
 
         # save this batch's score to tensorboard
-        summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={})
+        summaries_, global_step_ = sess.run([summaries, global_step])
         summary_writer.add_summary(summaries_, global_step_)
         write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
         write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
