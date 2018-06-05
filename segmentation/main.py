@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 from model.dataset import load_data, dimension_validation, get_channel_dim
 from model.dataset_gen import load_data2
-from model.segmentation_model import model_init_fn, optimizer_init_fn, model_dim_print, dice_coefficient_loss
+from model.segmentation_model import unet_wo_connect, optimizer_init_fn, unet_w_connect, dice_coefficient_loss
 from utils.util import load_image_files, check_image_dimension, load_seq_from_yaml, path_config, write_summary, print_image, get_channel_dimension2
 import tensorflow.contrib.eager as tfe
 import pdb
@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
 tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
 
-
+tf.app.flags.DEFINE_boolean("enable_connect", True, "enable_connect")
 tf.app.flags.DEFINE_boolean("enable_osvos", True, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_maskrcnn", False, "enable_maskrcnn")
 tf.app.flags.DEFINE_boolean("enable_jpg", True, "enable_jpg")
@@ -50,13 +50,14 @@ tf.app.flags.DEFINE_integer("pool", 2, "weight")
 tf.app.flags.DEFINE_integer("batch_size", 20, "batch_size")
 tf.app.flags.DEFINE_integer("num_epochs", 30, "num_epochs")
 tf.app.flags.DEFINE_float("lr", 0.00004, "learning rate")
+
 tf.app.flags.DEFINE_integer("num_classes", 10, "num_classes")
 tf.app.flags.DEFINE_boolean("shuffle_train", False, "shuffle")
 
-tf.app.flags.DEFINE_boolean("layer8", True, "layer8")
+tf.app.flags.DEFINE_boolean("layer8", False, "layer8")
 tf.app.flags.DEFINE_boolean("layer16", True, "layer16")
 tf.app.flags.DEFINE_boolean("layer32", True, "layer32")
-tf.app.flags.DEFINE_boolean("layer64", False, "layer64")
+tf.app.flags.DEFINE_boolean("layer64", True, "layer64")
 tf.app.flags.DEFINE_boolean("layer128", False, "layer128")
 tf.app.flags.DEFINE_boolean("layer256", False, "layer256")
 
@@ -151,7 +152,10 @@ def main(unused_argv):
     y = tf.placeholder(tf.float32, [None, FLAGS.height, FLAGS.weight, 1])
 
     # pred_mask = model_init_fn(FLAGS=FLAGS, inputs=x)
-    pred_mask = model_dim_print(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
+    if FLAGS.enable_connect:
+      pred_mask = unet_w_connect(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
+    else:
+      pred_mask = unet_wo_connect(FLAGS=FLAGS, channel_dim=channel_dim, inputs=x)
     # loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=pred_mask)
     # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=pred_mask)
 
