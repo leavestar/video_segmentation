@@ -26,6 +26,8 @@ path_config(env)
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
 tf.app.flags.DEFINE_boolean("skip_test_mode", False, "skip test")
+tf.app.flags.DEFINE_boolean("skip_train_val_mode", True, "skip test") # default not eval on train-val
+
 
 tf.app.flags.DEFINE_boolean("enable_connect_unet", True, "enable_connect_unet")
 tf.app.flags.DEFINE_boolean("enable_connect128", True, "enable_connect128")
@@ -78,6 +80,10 @@ root_path = os.path.join(FLAGS.output_path, FLAGS.model_label)
 
 if not os.path.exists(root_path):
   os.makedirs(root_path)
+
+# best model save dir
+if not os.path.exists(os.path.join(root_path, "models/best/")):
+  os.makedirs(os.path.exists(os.path.join(root_path, "models/best/")))
 
 file_handler = logging.FileHandler(root_path + "/log.txt")
 file_handler.setLevel(logging.INFO)
@@ -197,6 +203,8 @@ def main(unused_argv):
 
     logger.info(
       "Global number of params: {}".format(sum(v.get_shape().num_elements() for v in tf.trainable_variables())))
+
+    best_test_dice_loss_sofar = None
     for epoch in range(FLAGS.num_epochs):
       if FLAGS.train_mode:
         logger.info("======================== Starting training Epoch {} ========================".format(epoch))
@@ -247,6 +255,11 @@ def main(unused_argv):
 
             assert np.max(pred_mask_) <= 1 and np.max(y_np) <= 1
 
+            #TODO when this happens, print to see what happened
+            if dice_loss_ < 0:
+              print ("dice_loss should not be zero... continue")
+              continue
+
             if epoch % FLAGS.save_train_animation_every_n_epochs == 0:
               print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pred_mask_, epoch)
 
@@ -276,9 +289,12 @@ def main(unused_argv):
           tf.train.Saver().save(sess=sess, save_path=root_path + "/models/tmp/epoch_{}/model.ckpt".format(str(epoch)))
 
 
-      ##### evaluate the model on train-val and test, for EVERY EPOCH
+      ##### evaluate the model on train-val and test, for EVERY EPOCH. and save best model if approriate
 
       for target in ["train-val", "test"]:
+        if FLAGS.skip_train_val_mode and target == "train-val":
+          continue
+
         if FLAGS.skip_test_mode and target == "test":
           continue
 
@@ -295,7 +311,7 @@ def main(unused_argv):
             batch = sess.run(seq_dataset.get_next())
             seq_name_, image_number_, object_number_, x_np, y_np = batch
 
-            loss_np, dice_loss_, pred_mask_, dice_loss_osvos_, summaries_, global_step_ = \
+            loss_np, dice_loss_, pred_mask_, dice_loss_osvos_ = \
               sess.run([loss, dice_loss, pred_mask, dice_loss_osvos, summaries, global_step], feed_dict={x: x_np, y: y_np})
 
             if loss_np > 2:
@@ -307,11 +323,7 @@ def main(unused_argv):
             dice_loss__ += dice_loss_
             dice_loss_osvos__ += dice_loss_osvos_
 
-            summary_writer.add_summary(summaries_, global_step_)
-            write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
-            write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
-
-            if epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1:
+            if epoch != 0 and (epoch % FLAGS.save_eval_every_n_epochs == 0 or epoch == FLAGS.num_epochs - 1):
               # now persist prediction to disk for later davis-score computation
 
               test_mask_output = os.path.join(root_path, "eval", str(epoch), target)
@@ -336,10 +348,27 @@ def main(unused_argv):
         batch_num += 1
         loss_np_, dice_loss__, dice_loss_osvos__ = loss_np_/batch_num, dice_loss__/batch_num, dice_loss_osvos__/batch_num
 
+        # save this batch's score to tensorboard
+        summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={})
+        summary_writer.add_summary(summaries_, global_step_)
+        write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
+        write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+
         logger.info(
           "%s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
           (target, loss_np_, dice_loss__, dice_loss_osvos__)
         )
+
+        # now check best_test_dice_loss_sofar
+        if target == "test" and (best_test_dice_loss_sofar is None or dice_loss__ > best_test_dice_loss_sofar):
+          # save model
+          best_test_dice_loss_sofar = dice_loss__
+          logger.info(
+            "saving best model: Epoch %i, test_dice_loss %.4f" %
+            (epoch, best_test_dice_loss_sofar)
+          )
+          tf.train.Saver().save(sess=sess, save_path=root_path + "/models/best/model.ckpt")
+
 
 
 def eval_on_test_data(sess, segmentation_dataset_test, test_seq_list, ops, placeholder, epoch, FLAGS):
