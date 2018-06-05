@@ -83,7 +83,7 @@ if not os.path.exists(root_path):
 
 # best model save dir
 if not os.path.exists(os.path.join(root_path, "models/best/")):
-  os.makedirs(os.path.exists(os.path.join(root_path, "models/best/")))
+  os.makedirs(os.path.join(root_path, "models/best/"))
 
 file_handler = logging.FileHandler(root_path + "/log.txt")
 file_handler.setLevel(logging.INFO)
