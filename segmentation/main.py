@@ -292,6 +292,7 @@ def main(unused_argv):
       ##### evaluate the model on train-val and test, for EVERY EPOCH. and save best model if approriate
 
       for target in ["train-val", "test"]:
+
         if FLAGS.skip_train_val_mode and target == "train-val":
           continue
 
@@ -303,12 +304,13 @@ def main(unused_argv):
 
         logger.info("======================== Starting testing Epoch {} - {} ========================".format(epoch, target))
 
-        batch_num = -1
+        batch_num = 0
         loss_np_, dice_loss__, dice_loss_osvos__ = 0.0, 0.0, 0.0
+        x_np, y_np = None, None
         while True:
           try:
-            batch_num += 1
             batch = sess.run(seq_dataset.get_next())
+            batch_num += 1
             seq_name_, image_number_, object_number_, x_np, y_np = batch
 
             loss_np, dice_loss_, pred_mask_, dice_loss_osvos_ = \
@@ -318,6 +320,11 @@ def main(unused_argv):
               batch_num -= 1
               logger.info("(potentially) End of {} epoch, discard last batch".format(target))
               continue  # we observed that the last epoch has some wiredness due to under-rank.
+
+            # TODO when this happens, print to see what happened
+            if dice_loss_ < 0:
+              print ("dice_loss should not be zero... continue")
+              continue
 
             loss_np_ += loss_np
             dice_loss__ += dice_loss_
@@ -345,14 +352,16 @@ def main(unused_argv):
             logger.warn("End of range")
             break
 
-        batch_num += 1
         loss_np_, dice_loss__, dice_loss_osvos__ = loss_np_/batch_num, dice_loss__/batch_num, dice_loss_osvos__/batch_num
 
         # save this batch's score to tensorboard
-        summaries_, global_step_ = sess.run([summaries, global_step])
-        summary_writer.add_summary(summaries_, global_step_)
-        write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
-        write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
+        if x_np is None or y_np is None:
+          logger.info("skip tensorboard test loss writing...")
+        else:
+          summaries_, global_step_ = sess.run([summaries, global_step], feed_dict={x: x_np, y: y_np})
+          summary_writer.add_summary(summaries_, global_step_)
+          write_summary(loss_np, "Test CE Loss", summary_writer, global_step_)
+          write_summary(dice_loss_, "Test Dice Loss", summary_writer, global_step_)
 
         logger.info(
           "%s Loss: %.4f, dice loss: %.4f, dice_loss_osvos_: %4f" %
