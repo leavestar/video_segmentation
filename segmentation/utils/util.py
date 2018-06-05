@@ -35,7 +35,7 @@ def get_jpg_layer(FLAGS):
     dim += 1
   if FLAGS.enable_maskrcnn:
     dim += 1
-  return range(dim, dim + 3)
+  return dim, dim + 3
 
 
 def get_firstframe_layer(FLAGS):
@@ -216,8 +216,8 @@ def print_image(FLAGS, seq_name_, image_number_, object_number_, x_np, y_np, pre
                                  x_np[idx, :, :, firstframe_layer].astype('uint8'))
 
       if FLAGS.enable_jpg and epoch == 0:
-        jpg_layer = get_jpg_layer(FLAGS)
-        skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, jpg_layer])
+        jpg_layer_start, jpg_layer_end = get_jpg_layer(FLAGS)
+        skimage.io.imsave(os.path.join(savedir, 'gt_image.jpg'), x_np[idx, :, :, jpg_layer_start:jpg_layer_end])
 
       if epoch == 0:
         davis.io.imwrite_indexed(os.path.join(savedir, 'gt_label_epoch.png'),
