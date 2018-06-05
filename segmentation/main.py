@@ -234,8 +234,8 @@ def main(unused_argv):
             toc = time.time()
 
             logger.info(
-              "Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f,  dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
-              (batch_num, loss_np, dice_loss_, exp_loss_, exp_dice_loss_, dice_loss_osvos_, weight_, toc - tic)
+              "Epoch: %i Batch: %i Train Loss: %.4f, dice loss: %.4f, smoothed loss %.4f, smoothed dice loss %.4f,  dice_loss_osvos_: %4f, pos_weight: %.4f takes %.2f seconds" %
+              (epoch, batch_num, loss_np, dice_loss_, exp_loss_, exp_dice_loss_, dice_loss_osvos_, weight_, toc - tic)
             )
             summary_writer.add_summary(summaries_, global_step_)
             write_summary(loss_np, "Train CE Loss", summary_writer, global_step_)
