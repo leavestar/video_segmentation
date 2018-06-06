@@ -20,8 +20,15 @@ import skimage
 
 from davis import *
 
-env = "cloud"
+env = "jj"
 path_config(env)
+
+#VERY IMPORTANT -- final_eval mode. only set to true if you know what you are doing
+tf.app.flags.DEFINE_boolean("final_eval", False, "read model and eval perf")
+tf.app.flags.DEFINE_string("load_sub_path", "", "load sub path")  # models/tmp/epoch_16
+
+
+tf.app.flags.DEFINE_string("model_label", "", "model_label")
 
 tf.app.flags.DEFINE_boolean("train_mode", True, "enable training")
 tf.app.flags.DEFINE_boolean("debug_mode", False, "pdb debugger")
@@ -42,8 +49,6 @@ tf.app.flags.DEFINE_string("maskrcnn_label_path", "MaskRCNN/480p", "maskrcnn_lab
 tf.app.flags.DEFINE_string("osvos_label_path", "Results/Segmentations/480p/OSVOS2-convert", "osvos_label_path")
 tf.app.flags.DEFINE_string("groundtruth_label_path", "Annotations/480p", "groundtruth_label_path")
 tf.app.flags.DEFINE_string("groundtruth_image_path", "JPEGImages/480p", "groundtruth_image_path")
-
-tf.app.flags.DEFINE_string("model_label", "", "model_label")
 
 tf.app.flags.DEFINE_integer("height", 480, "height")
 tf.app.flags.DEFINE_integer("weight", 854, "weight")
@@ -94,6 +99,9 @@ logger.addHandler(file_handler)
 def setup(root_path):
   if not FLAGS.model_label:
     raise Exception("--model_label is required, eg osvos_maskrcnn_0602")
+
+  if FLAGS.final_eval and not FLAGS.load_sub_path:
+    raise Exception("--load_sub_path is required for evaluation, eg models/tmp/epoch_20")
 
   if not os.path.exists(root_path + "/models"):
     os.makedirs(root_path + "/models")
@@ -146,11 +154,14 @@ def main(unused_argv):
   # check_image_dimension(FLAGS, logger, train_seqs)
 
   # construct image files array
-  if FLAGS.train_mode:
-    segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs, FLAGS.shuffle_train)
+  if not FLAGS.final_eval:
+    if FLAGS.train_mode:
+      segmentation_dataset, _ = generate_dataset(FLAGS, train_seqs, FLAGS.shuffle_train)
 
-  segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample, False)
+    segmentation_dataset_val, _ = generate_dataset(FLAGS, train_sample, False)
+
   segmentation_dataset_test, _ = generate_dataset(FLAGS, test_seqs, False)
+
   global_step = tf.Variable(0, name="global_step", trainable=False)
   exp_loss = None
   exp_dice_loss = None
@@ -195,6 +206,12 @@ def main(unused_argv):
       train_op = optimizer.minimize(loss, global_step=global_step)
 
   with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+
+    if FLAGS.final_eval:
+      eval_perf(sess, segmentation_dataset_test, FLAGS, loss, dice_loss, pred_mask, x, y)
+      sys.exit(os.EX_OK)
+
+
     sess.run(tf.global_variables_initializer())
 
     # For tensorboard
@@ -464,6 +481,52 @@ def eval_on_test_data2(sess, segmentation_dataset_test, test_seq_list, ops, plac
   # for the per-object-based method in Approach 2, its hard to evaluate davis loss on the fly. instead, we save
   # each image on to disk and later run a seperate script to combine/post-process them
   raise NotImplementedError
+
+
+def eval_perf(sess, seq_dataset, FLAGS, loss, dice_loss, pred_mask, x, y):
+
+  model_location = os.path.join(root_path, FLAGS.load_sub_path, "model.ckpt")
+  logger.info("======================== Loading model from {} ========================".format(model_location))
+  tf.train.Saver().restore(sess=sess, save_path=model_location)
+
+  seq_dataset = seq_dataset.make_one_shot_iterator()
+
+  batch_num = 0
+  while True:
+    try:
+      tic = time.time()
+      batch = sess.run(seq_dataset.get_next())
+      batch_num += 1
+      seq_name_, image_number_, object_number_, x_np, y_np = batch
+
+      loss_np, dice_loss_, pred_mask_ = \
+        sess.run([loss, dice_loss, pred_mask], feed_dict={x: x_np, y: y_np})
+
+      toc = time.time()
+      logger.info(
+        "Batch: %i Test Loss: %.4f, dice loss: %.4f, takes %.2f seconds" %
+        (batch_num, loss_np, dice_loss_, toc - tic)
+      )
+
+      # now persist prediction to disk for later davis-score computation
+      test_mask_output = os.path.join(root_path, "eval/final")
+      # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
+
+      for idx in range(len(seq_name_)):
+        seq_name__ = seq_name_[idx].decode("utf-8")
+        image_number__ = image_number_[idx].decode("utf-8")
+        obj_number = str(object_number_[idx])
+        savedir_ = os.path.join(test_mask_output, seq_name__, obj_number)
+        if not os.path.exists(savedir_):
+          os.makedirs(savedir_)
+
+        _pred_to_save = np.zeros((FLAGS.height, FLAGS.weight), dtype='uint8')
+        _pred_to_save[pred_mask_[idx, :, :, 0] > 0.5] = 1
+        davis.io.imwrite_indexed(os.path.join(savedir_, image_number__), _pred_to_save)
+
+    except tf.errors.OutOfRangeError:
+      logger.warn("End of range")
+      break
 
 
 if __name__ == "__main__":
