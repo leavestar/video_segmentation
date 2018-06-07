@@ -25,6 +25,8 @@ path_config(env)
 
 #VERY IMPORTANT -- final_eval mode. only set to true if you know what you are doing
 tf.app.flags.DEFINE_boolean("final_eval", False, "read model and eval perf")
+tf.app.flags.DEFINE_string("eval_save_dir", "final", "name suggest")
+
 tf.app.flags.DEFINE_string("load_sub_path", "", "load sub path")  # models/tmp/epoch_16
 
 
@@ -509,7 +511,7 @@ def eval_perf(sess, seq_dataset, FLAGS, loss, dice_loss, pred_mask, x, y):
       )
 
       # now persist prediction to disk for later davis-score computation
-      test_mask_output = os.path.join(root_path, "eval/final")
+      test_mask_output = os.path.join(root_path, "eval", FLAGS.eval_save_dir)
       # /home/shared/video_segmentation/segmentation/Results/experiment_name/eval/train-val/
 
       for idx in range(len(seq_name_)):
