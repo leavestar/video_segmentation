@@ -20,7 +20,7 @@ import skimage
 
 from davis import *
 
-env = "jj"
+env = "cloud"
 path_config(env)
 
 #VERY IMPORTANT -- final_eval mode. only set to true if you know what you are doing

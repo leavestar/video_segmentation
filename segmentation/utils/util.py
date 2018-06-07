@@ -155,9 +155,9 @@ def path_config(env):
                                "/home/shared/video_segmentation/segmentation",
                                "config_path")
     tf.app.flags.DEFINE_string("train_seq_yaml", "train.yaml", "train_seq_yaml")
-    tf.app.flags.DEFINE_string("test_seq_yaml", "test.yaml", "test_seq_yaml")
+    # tf.app.flags.DEFINE_string("test_seq_yaml", "test.yaml", "test_seq_yaml")
     tf.app.flags.DEFINE_string("train_val_yaml", "train-sample.yaml", "train_val_yaml")
-    tf.app.flags.DEFINE_string("test_val_yaml", "test.yaml", "test_val_yaml")
+    tf.app.flags.DEFINE_string("test_val_yaml", "test-sample.yaml", "test_val_yaml")
     tf.app.flags.DEFINE_string("device", "/gpu:0", "device")
 
 
